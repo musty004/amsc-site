@@ -1,0 +1,7 @@
+# Netlify settings for the AMSC site.
+# The site is already built (plain HTML), so Netlify only publishes this folder.
+# To change content: edit files in _source/, run `python3 build.py` inside _source/,
+# then commit and push. Netlify goes live automatically after each push.
+[build]
+  publish = "."
+  command = ""
