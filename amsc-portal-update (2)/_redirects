@@ -1,9 +1,0 @@
-# Old page names from the previous version of the site
-/media.html      /gallery.html     301
-/media           /gallery          301
-/press.html      /blog.html        301
-/press           /blog             301
-/portal          /portal.html      200
-# Keep the generator out of public view
-/_source/*       /404.html         404
-/netlify/*       /404.html         404
