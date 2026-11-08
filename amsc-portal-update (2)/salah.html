@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prayer times | AMSC</title>
+<meta name="description" content="Today’s prayer times for Kaduna, jama’ah times at the AFIT Mosque and where to pray on campus.">
+<link rel="canonical" href="https://afitmsc.com.ng/salah.html">
+<meta name="theme-color" content="#0056CE">
+<meta property="og:site_name" content="AFIT Muslim Students’ Community">
+<meta property="og:title" content="Prayer times">
+<meta property="og:description" content="Today’s prayer times for Kaduna, jama’ah times at the AFIT Mosque and where to pray on campus.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://afitmsc.com.ng/salah.html">
+<meta property="og:image" content="https://afitmsc.com.ng/assets/img/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="assets/fonts/dm-sans-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<link rel="preload" as="style" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&amp;display=swap">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&amp;display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&amp;display=swap"></noscript>
+<link rel="stylesheet" href="assets/style.css?v=f20aef75">
+<link rel="icon" href="assets/img/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="salahbar" role="region" aria-label="Prayer times in Kaduna today">
+  <div class="salahbar__inner">
+    <a class="salahbar__label" href="salah.html">Prayer times, Kaduna</a>
+    <ul class="salahbar__list" id="salah-list"></ul>
+    <span class="salahbar__next" id="salah-next" aria-live="polite"></span>
+  </div>
+</div>
+<header class="site-header">
+  <div class="header__inner">
+    <a class="brand" href="index.html" aria-label="AMSC home">
+      <img class="brand__mark" src="assets/img/logo-icon-40.webp" srcset="assets/img/logo-icon-80.webp 2x" alt="" width="40" height="40">
+      <span class="brand__text">
+        <span class="brand__name">AMSC</span>
+        <span class="brand__sub">AFIT Muslim Students&rsquo; Community</span>
+      </span>
+    </a>
+    <nav class="nav" id="primary-nav" aria-label="Main">
+      <ul class="nav__list"><li><a href="about.html">About</a></li><li><a href="programmes.html">Programmes</a></li><li><a href="events.html">Events</a></li><li><a href="executive.html">Executives</a></li><li><a href="freshers.html">Freshers</a></li><li><a href="gallery.html">Gallery</a></li><li><a href="blog.html">Blog</a></li><li><a href="contact.html">Contact</a></li></ul>
+      <div class="nav__extra">
+        <a href="salah.html">Prayer times</a>
+        <a href="academics.html">Academics</a>
+        <a href="sisters.html">Sisters</a>
+        <a href="welfare.html">Welfare</a>
+        <a href="amanah.html">Amanah Desk</a>
+        <a href="islamiyyah.html">Islamiyyah</a>
+        <a href="portal.html">Student Portal</a>
+      </div>
+      <a class="btn btn--yellow nav__join" href="join.html#register">Join AMSC</a>
+    </nav>
+    <button class="navtoggle" type="button" aria-expanded="false" aria-controls="primary-nav">
+      <span class="navtoggle__open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="navtoggle__close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"/></svg></span>
+      <span class="sr-only">Menu</span>
+    </button>
+  </div>
+</header>
+<main id="main">
+<section class="pagehead">
+  <div class="wrap pagehead__inner">
+    <nav class="crumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span aria-hidden="true">/</span>Prayer times</nav>
+    <h1>Prayer times</h1>
+    <p class="pagehead__lede">Today&rsquo;s prayer times for Kaduna, jama&rsquo;ah times, and where we pray: daily, on Fridays and on Eid.</p>
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="wrap">
+    <h2 class="sr-only">Today in Kaduna</h2>
+    <div class="salah-grid" id="salah-grid" aria-live="polite"></div>
+    <noscript><p class="notice">Prayer times need JavaScript. Jama&rsquo;ah is held 15 minutes after each prayer time, except Dhuhr at 1:15pm.</p></noscript>
+    <p class="note">Jama&rsquo;ah is held <strong>15 minutes after each prayer time</strong>, except
+    <strong>Dhuhr, which is fixed at 1:15pm</strong>. Prayer times update each day and are saved on
+    your device, so this page still works without data.</p>
+  </div>
+</section>
+
+<section class="section" id="where">
+  <div class="wrap">
+    <div class="sechead">
+      <h2>Where we pray</h2>
+      <p class="lede">Daily prayers on campus, Jumu&rsquo;ah at the Base Central Mosque, and Eid at the
+      Air Force Primary School.</p>
+    </div>
+    <div class="prayer-places">
+      <article class="place place--jumuah" id="jumuah">
+        <span class="pill">Every Friday</span>
+        <h3>Jumu&rsquo;ah</h3>
+        <p class="place__where"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg><span>Nigerian Air Force Base Central Mosque, beside the NAF Hospital</span></p>
+        <p>We observe Jumu&rsquo;ah together at the Base Central Mosque. Come early so you can find a
+        place and listen to the khutbah from the beginning.</p>
+      </article>
+      <article class="place place--eid" id="eid">
+        <span class="pill">Eid al-Fitr and Eid al-Adha</span>
+        <h3>Eid prayer</h3>
+        <p class="place__where"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg><span>Usually at the Air Force Primary School</span></p>
+        <p>The exact time for Eid prayer is announced by the Imam at the Base Mosque. It is also
+        shared with members on the AMSC WhatsApp Community, so <a href="join.html#register">register</a> to
+        receive it.</p>
+      </article>
+    </div>
+
+    <h3 class="mt-l">Daily prayers on campus</h3>
+    <div class="grid grid--3 mt-s">
+      <div class="card">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3c2.5 2 4 3.8 4 6H8c0-2.2 1.5-4 4-6Z"/><path d="M4 21V12a3 3 0 0 1 3-3M20 21V12a3 3 0 0 0-3-3"/><path d="M4 21h16M9 21v-4a3 3 0 0 1 6 0v4"/></svg>
+        <h3>AFIT Mosque</h3>
+        <ul class="meta">
+          <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.5a3.2 3.2 0 0 1 0 6M17.5 14.4A6.5 6.5 0 0 1 21.5 20"/></svg>Brothers and sisters, separate sections</li>
+          <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>All five daily prayers in congregation</li>
+          <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8L6.8 19.8l1-5.9L3.5 9.7l5.9-.8Z"/></svg>Islamiyyah and the Sisters Circle</li>
+        </ul>
+        <p>The main mosque on campus and the home of the community. Wudu facilities available.</p>
+      </div>
+      <div class="card">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3c2.5 2 4 3.8 4 6H8c0-2.2 1.5-4 4-6Z"/><path d="M4 21V12a3 3 0 0 1 3-3M20 21V12a3 3 0 0 0-3-3"/><path d="M4 21h16M9 21v-4a3 3 0 0 1 6 0v4"/></svg>
+        <h3>Male Hostel Mosque</h3>
+        <ul class="meta">
+          <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.5a3.2 3.2 0 0 1 0 6M17.5 14.4A6.5 6.5 0 0 1 21.5 20"/></svg>Brothers</li>
+          <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Daily prayers, and Musaffa on Wednesdays</li>
+        </ul>
+        <p>The closest option for brothers in the hostel, especially for Fajr and Isha.</p>
+      </div>
+      <div class="card">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5Z"/></svg>
+        <h3>Prayer spaces near lectures</h3>
+        <ul class="meta">
+          <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Dhuhr and Asr between classes</li>
+          <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Ask any AMSC member for directions</li>
+        </ul>
+        <p>Know a space that should be listed here? Tell the media team and we will add it.</p>
+      </div>
+    </div>
+    <div class="notice notice--blue mt-m"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5Z"/></svg><p><strong>Qiblah at AFIT:</strong>
+    roughly east-north-east. Every listed space is already aligned, so follow the lines on the mat
+    rather than a phone compass indoors, where metal and walls throw the reading off.</p></div>
+  </div>
+</section>
+
+<section class="section section--mist">
+  <div class="wrap split">
+    <div>
+      <h2>The etiquette of Friday</h2>
+      <p>Jumu&rsquo;ah is the gathering of the week. The recommended practice for the day: ghusl
+      before setting out, clean or best clothes, perfume if you have it, arriving early, reciting
+      Surah Al-Kahf, sending abundant salawat on the Prophet ﷺ, and listening to the khutbah without
+      disturbing anyone.</p>
+    </div>
+    <div class="card">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 21V10.5C5 7 8 4.6 12 3c4 1.6 7 4 7 7.5V21"/><path d="M9 21v-6a3 3 0 0 1 6 0v6M3 21h18"/></svg>
+      <h3>Jumu&rsquo;ah location</h3>
+      <p>Nigerian Air Force Base Central Mosque, beside the NAF Hospital.</p>
+      <div class="card__foot"><a class="link" href="events.html">See what is coming up</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--tight">
+  <div class="wrap">
+    <div class="band">
+      <div class="band__copy"><h2>Set the rhythm of your week around the five</h2><p>Every tutorial, circle and fixture on this site is scheduled around the prayer times above.</p></div>
+      <div class="band__actions"><a class="btn btn--yellow" href="programmes.html#timetable">See the weekly timetable</a><a class="btn btn--line-light" href="join.html#register">Join AMSC</a></div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer__top">
+      <div class="footer__brand">
+        <a class="brand brand--light" href="index.html" aria-label="AMSC home"><img class="brand__mark" src="assets/img/logo-mark-48.webp" srcset="assets/img/logo-mark-96.webp 2x" alt="" width="48" height="48" loading="lazy" decoding="async">
+          <span class="brand__text">
+            <span class="brand__name">AMSC</span>
+            <span class="brand__sub">AFIT Muslim Students&rsquo; Community</span>
+          </span></a>
+        <p class="footer__tagline"><span class="ar footer__ar" lang="ar" dir="rtl">معًا في الدين والهدف</span><span>Together in Faith and Purpose</span></p>
+        <p class="footer__place">Air Force Institute of Technology, Kaduna</p>
+      </div>
+      <div>
+        <h2 class="footer__h">Explore</h2>
+        <ul>
+          <li><a href="about.html">About AMSC</a></li>
+          <li><a href="programmes.html">Programmes</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="executive.html">Executive Committee</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="blog.html">Blog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="footer__h">For students</h2>
+        <ul>
+          <li><a href="freshers.html">Freshers&rsquo; guide</a></li>
+          <li><a href="islamiyyah.html">Islamiyyah</a></li>
+          <li><a href="portal.html">Islamiyyah Student Portal</a></li>
+          <li><a href="academics.html">Academics</a></li>
+          <li><a href="salah.html">Prayer times</a></li>
+          <li><a href="sisters.html">Sisters</a></li>
+          <li><a href="welfare.html">Welfare</a></li>
+          <li><a href="amanah.html">Amanah Desk</a></li>
+          <li><a href="library.html">Library</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="footer__h">Get involved</h2>
+        <ul>
+          <li><a href="join.html#register">Join AMSC</a></li>
+          <li><a href="join.html#volunteer">Volunteer</a></li>
+          <li><a href="give.html">Give and dues</a></li>
+          <li><a href="alumni.html">AMAN alumni network</a></li>
+          <li><a href="contact.html">Contact us</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="footer__h">Contact</h2>
+        <ul>
+          <li><a class="footer__email" href="mailto:Afitmssn@gmail.com">Afitmssn@gmail.com</a></li>
+          <li><a href="join.html#register">Join the WhatsApp Community</a></li>
+          <li><span class="footer__soon">Publications: coming soon</span></li>
+        </ul>
+        <div class="social">
+          <a href="https://www.instagram.com/afitmsc/" target="_blank" rel="noopener" aria-label="Instagram @afitmsc (opens in a new tab)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg></a>
+          <a href="https://www.facebook.com/share/19dP61VwLX/" target="_blank" rel="noopener" aria-label="Facebook (opens in a new tab)"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M13.5 21v-7.6h2.6l.4-3h-3V8.5c0-.9.25-1.5 1.5-1.5H16.6V4.3A20 20 0 0 0 14.3 4.2c-2.3 0-3.9 1.4-3.9 4v2.2H7.8v3h2.6V21Z"/></svg></a>
+          <a href="join.html#register" aria-label="Register to join the WhatsApp Community"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6-3-1.3-4.9-4.3-5.1-4.5-.1-.2-1.2-1.5-1.2-2.9s.7-2 1-2.3c.2-.3.5-.4.7-.4h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5-.3.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2 1.3 2.3 1.4.3.1.5.1.7-.1l.8-1c.2-.2.4-.2.6-.1l2 1c.2.1.4.2.4.3.1.2.1.7-.1 1.4Z"/></svg></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>&copy; 2026 AFIT Muslim Students’ Community (AMSC). One Ummah. One Campus.</span>
+      <span>Maintained by the AMSC Media team</span>
+    </div>
+  </div>
+</footer>
+<script src="assets/main.js?v=73fdb562" defer></script>
+
+</body>
+</html>
