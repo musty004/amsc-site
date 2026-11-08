@@ -50,7 +50,7 @@ FLYERS = [
     "flyer-aman", "flyer-askbox", "flyer-convocation", "flyer-freshers",
     "flyer-hijabday", "flyer-idit-graduation", "flyer-idit", "flyer-matriculation",
     "flyer-musabaqah", "flyer-pdfnest", "flyer-sendforth-agenda", "flyer-sendforth",
-    "flyer-sisters-circle", "flyer-welfare-officers",
+    "flyer-sisters-circle", "flyer-welfare-officers", "flyer-islamiyyah", "flyer-dues",
 ]
 FLYER_WIDTHS = [480, 900]
 

@@ -1,7 +1,12 @@
-# Netlify settings for the AMSC site.
+# Netlify settings for the AMSC site (written by _source/build.py).
 # The site is already built (plain HTML), so Netlify only publishes this folder.
 # To change content: edit files in _source/, run `python3 build.py` inside _source/,
 # then commit and push. Netlify goes live automatically after each push.
 [build]
   publish = "."
   command = ""
+
+# netlify/functions/keepalive.mjs pings the portal database once a day so the
+# free Supabase project is not paused for inactivity.
+[functions]
+  directory = "netlify/functions"

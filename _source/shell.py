@@ -145,6 +145,8 @@ def header(current):
         <a href="sisters.html">Sisters</a>
         <a href="welfare.html">Welfare</a>
         <a href="amanah.html">Amanah Desk</a>
+        <a href="islamiyyah.html">Islamiyyah</a>
+        <a href="{D.PORTAL}">Student Portal</a>
       </div>
       <a class="btn btn--yellow nav__join" href="{D.JOIN}">Join AMSC</a>
     </nav>
@@ -186,6 +188,8 @@ def footer():
         <h2 class="footer__h">For students</h2>
         <ul>
           <li><a href="freshers.html">Freshers&rsquo; guide</a></li>
+          <li><a href="islamiyyah.html">Islamiyyah</a></li>
+          <li><a href="{D.PORTAL}">Islamiyyah Student Portal</a></li>
           <li><a href="academics.html">Academics</a></li>
           <li><a href="salah.html">Prayer times</a></li>
           <li><a href="sisters.html">Sisters</a></li>
@@ -226,10 +230,13 @@ def footer():
 </footer>'''
 
 
-def head_fonts():
+def head_fonts(strict=False):
     if LOCAL_CLASH:
         return ""
     url = "https://api.fontshare.com/v2/css?f[]=clash-display@500,600&amp;display=swap"
+    if strict:   # no inline event handlers allowed
+        return f'''<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<link rel="stylesheet" href="{url}">'''
     return f'''<link rel="preconnect" href="https://api.fontshare.com">
 <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
 <link rel="preload" as="style" href="{url}">
@@ -237,7 +244,7 @@ def head_fonts():
 <noscript><link rel="stylesheet" href="{url}"></noscript>'''
 
 
-def page(slug, title, description, body, current=None, extra_head="", noindex=False):
+def page(slug, title, description, body, current=None, extra_head="", noindex=False, csp=None, scripts=()):
     cur = current if current is not None else slug
     full_title = f"{D.ORG} ({D.SHORT})" if slug == "index.html" else f"{title} | {D.SHORT}"
     url = D.SITE_URL + "/" + ("" if slug == "index.html" else slug)
@@ -247,7 +254,7 @@ def page(slug, title, description, body, current=None, extra_head="", noindex=Fa
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{full_title}</title>
+{f'<meta http-equiv="Content-Security-Policy" content="{csp}">' + chr(10) if csp else ""}<title>{full_title}</title>
 <meta name="description" content="{escape(description, quote=True)}">
 {robots}<link rel="canonical" href="{url}">
 <meta name="theme-color" content="#0056CE">
@@ -261,7 +268,7 @@ def page(slug, title, description, body, current=None, extra_head="", noindex=Fa
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/dm-sans-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
-{head_fonts()}
+{head_fonts(strict=bool(csp))}
 <link rel="stylesheet" href="assets/style.css?v={ASSET_VER['css']}">
 <link rel="icon" href="assets/img/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
@@ -274,6 +281,7 @@ def page(slug, title, description, body, current=None, extra_head="", noindex=Fa
 </main>
 {footer()}
 <script src="assets/main.js?v={ASSET_VER['js']}" defer></script>
+{"".join(f'<script src="{src}" defer></script>' + chr(10) for src in scripts)}
 </body>
 </html>
 '''

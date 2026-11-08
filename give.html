@@ -22,7 +22,7 @@
 <link rel="preload" as="style" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&amp;display=swap">
 <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&amp;display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&amp;display=swap"></noscript>
-<link rel="stylesheet" href="assets/style.css?v=c4682125">
+<link rel="stylesheet" href="assets/style.css?v=f20aef75">
 <link rel="icon" href="assets/img/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
@@ -53,6 +53,8 @@
         <a href="sisters.html">Sisters</a>
         <a href="welfare.html">Welfare</a>
         <a href="amanah.html">Amanah Desk</a>
+        <a href="islamiyyah.html">Islamiyyah</a>
+        <a href="portal.html">Student Portal</a>
       </div>
       <a class="btn btn--yellow nav__join" href="join.html#register">Join AMSC</a>
     </nav>
@@ -70,14 +72,36 @@
     <p class="pagehead__lede">Semester dues, the welfare fund and support for specific projects, with an account of how funds are used.</p>
   </div>
 </section>
-<section class="section">
-  <div class="wrap grid grid--3">
-    <div class="card">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.5a3.2 3.2 0 0 1 0 6M17.5 14.4A6.5 6.5 0 0 1 21.5 20"/></svg>
-      <h3>Semester dues</h3>
-      <p>&#8358;1,000 and above, once a semester. The base that keeps the weekly programmes running.</p>
-      <div class="card__foot"><a class="btn btn--blue btn--sm" href="https://selar.com/u2vg771111" target="_blank" rel="noopener">Pay dues<svg class="ico ico--ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span class="sr-only"> (opens in a new tab)</span></a></div>
+<section class="section" id="dues">
+  <div class="wrap split split--sidebar">
+    <div>
+      <p class="kicker"><span class="pill">1448 AH / 2026–2027 session</span> Once a semester</p>
+      <h2>Pay your semester dues</h2>
+      <p class="lede">Dues of <strong>&#8358;1,000 and above</strong> keep the weekly programmes running and
+      strengthen our community.</p>
+      <section class="paycard" aria-labelledby="pay-h">
+        <h3 id="pay-h" class="paycard__h">Payment details</h3>
+        <dl class="paycard__list">
+          <div><dt>Account number</dt>
+            <dd class="paycard__num"><span id="dues-acct">2089476204</span>
+            <button type="button" class="btn btn--sm btn--blue paycard__copy" data-copy="2089476204" aria-describedby="dues-acct">Copy<span class="sr-only"> account number</span></button></dd></div>
+          <div><dt>Account name</dt><dd>Abdullahi Abdulrahman</dd></div>
+          <div><dt>Bank</dt><dd>Kuda MFB</dd></div>
+        </dl>
+        <p class="paycard__note">The account belongs to the AMSC Financial Officer. Use your full name as the
+        transfer description so the payment can be matched to you.</p>
+      </section>
+      <p>Prefer to pay with a card? Use the online payment link.</p>
+      <div class="actions"><a class="btn btn--line" href="https://selar.com/u2vg771111" target="_blank" rel="noopener">Pay dues online<svg class="ico ico--ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span class="sr-only"> (opens in a new tab)</span></a></div>
+      <p class="mt-m">If dues are difficult for you this semester, your membership continues unchanged. Nobody is
+      removed for not paying. <span class="ar" lang="ar" dir="rtl">جزاكم الله خيرا</span>: may Allah reward you for your support.</p>
     </div>
+    <figure class="framed give-flyer"><img src="assets/img/flyer-dues-900.webp" srcset="assets/img/flyer-dues-480.webp 480w, assets/img/flyer-dues-900.webp 900w" sizes="(min-width: 960px) 400px, 92vw" width="900" height="1125" alt="Semester dues flyer. Payment details: account number 2089476204, account name Abdullahi Abdulrahman, Kuda MFB." loading="lazy" decoding="async"></figure>
+  </div>
+</section>
+
+<section class="section section--tight section--flush">
+  <div class="wrap grid grid--2">
     <div class="card" id="welfare">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 20s-7-4.5-7-9.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7 3.5C19 15.5 12 20 12 20Z"/></svg>
       <h3>The welfare fund</h3>
@@ -104,7 +128,7 @@
     </div>
     <div class="grid grid--3">
       <div class="card"><p class="kicker"><span class="pill">Open</span></p><h3>Musabaqah prize fund</h3><p>Prizes and certificates for every category of the annual Qur&rsquo;an competition.</p></div>
-      <div class="card"><p class="kicker"><span class="pill">Open</span></p><h3>Islamiyya materials</h3><p>Copies of the Qur&rsquo;an, whiteboards, printed notes and teaching materials for the weekend classes.</p></div>
+      <div class="card"><p class="kicker"><span class="pill">Open</span></p><h3>Islamiyyah materials</h3><p>Copies of the Qur&rsquo;an, whiteboards, printed notes and teaching materials for the weekend classes.</p></div>
       <div class="card"><p class="kicker"><span class="pill">Open</span></p><h3>Ramadan iftar</h3><p>Daily iftar for students who stay on campus through the month, and the Annual Ramadan Lecture and Iftar.</p></div>
     </div>
   </div>
@@ -124,7 +148,7 @@
 </div>
       <h3 class="mt-l">How funds are used</h3>
       <ul>
-        <li><strong>Programmes:</strong> Islamiyya materials, tutorial printing and venue costs.</li>
+        <li><strong>Programmes:</strong> Islamiyyah materials, tutorial printing and venue costs.</li>
         <li><strong>Welfare:</strong> direct support to members in need.</li>
         <li><strong>Events:</strong> the Musabaqah, orientation, Eid gatherings and the sendforth.</li>
         <li><strong>Media:</strong> printing, design and this website.</li>
@@ -182,6 +206,8 @@
         <h2 class="footer__h">For students</h2>
         <ul>
           <li><a href="freshers.html">Freshers&rsquo; guide</a></li>
+          <li><a href="islamiyyah.html">Islamiyyah</a></li>
+          <li><a href="portal.html">Islamiyyah Student Portal</a></li>
           <li><a href="academics.html">Academics</a></li>
           <li><a href="salah.html">Prayer times</a></li>
           <li><a href="sisters.html">Sisters</a></li>
@@ -220,6 +246,7 @@
     </div>
   </div>
 </footer>
-<script src="assets/main.js?v=ea46fdba" defer></script>
+<script src="assets/main.js?v=73fdb562" defer></script>
+
 </body>
 </html>

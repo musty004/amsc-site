@@ -83,9 +83,9 @@ INDEX = f'''
         <div class="area__img">{img("quiz-mosque", "Students reciting the Qur'an in the mosque", "(min-width: 960px) 680px, 100vw")}</div>
         <div class="area__body">
           <h3>Faith and the Qur&rsquo;an</h3>
-          <p>Weekly Islamiyya classes in Qur&rsquo;an, Arabic, Fiqh and Tawheed, a recitation
+          <p>Weekly Islamiyyah classes in Qur&rsquo;an, Arabic, Fiqh and Tawheed, a recitation
           circle, Da&rsquo;wah Week and the annual Musabaqatul Qur&rsquo;an.</p>
-          <ul class="chips"><li>Islamiyya</li><li>Musaffa</li><li>Da&rsquo;wah Week</li><li>Musabaqatul Qur&rsquo;an</li></ul>
+          <ul class="chips"><li>Islamiyyah</li><li>Musaffa</li><li>Da&rsquo;wah Week</li><li>Musabaqatul Qur&rsquo;an</li></ul>
           <a class="link link--light" href="programmes.html#islamiyya">See faith programmes</a>
         </div>
       </article>

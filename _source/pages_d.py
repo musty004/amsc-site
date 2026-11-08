@@ -1,6 +1,6 @@
 import data as D
 import shell
-from shell import icon, img, pill, ext, band, pagehead, formspree_form, mail_link, soon
+from shell import icon, img, ar, pill, ext, band, pagehead, formspree_form, mail_link, soon
 from pages_b import flyer
 
 # ================================================================== GALLERY
@@ -270,14 +270,36 @@ BLOG = pagehead("Blog",
 GIVE = pagehead("Give",
   "Semester dues, the welfare fund and support for specific projects, with an account of how "
   "funds are used.") + f'''
-<section class="section">
-  <div class="wrap grid grid--3">
-    <div class="card">
-      {icon("users")}
-      <h3>Semester dues</h3>
-      <p>&#8358;1,000 and above, once a semester. The base that keeps the weekly programmes running.</p>
-      <div class="card__foot">{ext(D.DUES, "Pay dues", "btn btn--blue btn--sm")}</div>
+<section class="section" id="dues">
+  <div class="wrap split split--sidebar">
+    <div>
+      <p class="kicker">{pill(D.SESSION + " session")} Once a semester</p>
+      <h2>Pay your semester dues</h2>
+      <p class="lede">Dues of <strong>{D.DUES_AMOUNT}</strong> keep the weekly programmes running and
+      strengthen our community.</p>
+      <section class="paycard" aria-labelledby="pay-h">
+        <h3 id="pay-h" class="paycard__h">Payment details</h3>
+        <dl class="paycard__list">
+          <div><dt>Account number</dt>
+            <dd class="paycard__num"><span id="dues-acct">{D.DUES_ACCOUNT_NUMBER}</span>
+            <button type="button" class="btn btn--sm btn--blue paycard__copy" data-copy="{D.DUES_ACCOUNT_NUMBER}" aria-describedby="dues-acct">Copy<span class="sr-only"> account number</span></button></dd></div>
+          <div><dt>Account name</dt><dd>{D.DUES_ACCOUNT_NAME}</dd></div>
+          <div><dt>Bank</dt><dd>{D.DUES_BANK}</dd></div>
+        </dl>
+        <p class="paycard__note">The account belongs to the AMSC Financial Officer. Use your full name as the
+        transfer description so the payment can be matched to you.</p>
+      </section>
+      <p>Prefer to pay with a card? Use the online payment link.</p>
+      <div class="actions">{ext(D.DUES, "Pay dues online", "btn btn--line")}</div>
+      <p class="mt-m">If dues are difficult for you this semester, your membership continues unchanged. Nobody is
+      removed for not paying. {ar("جزاكم الله خيرا")}: may Allah reward you for your support.</p>
     </div>
+    <figure class="framed give-flyer">{img("flyer-dues", f"Semester dues flyer. Payment details: account number {D.DUES_ACCOUNT_NUMBER}, account name {D.DUES_ACCOUNT_NAME}, {D.DUES_BANK}.", "(min-width: 960px) 400px, 92vw")}</figure>
+  </div>
+</section>
+
+<section class="section section--tight section--flush">
+  <div class="wrap grid grid--2">
     <div class="card" id="welfare">
       {icon("heart")}
       <h3>The welfare fund</h3>
@@ -304,7 +326,7 @@ GIVE = pagehead("Give",
     </div>
     <div class="grid grid--3">
       <div class="card"><p class="kicker">{pill("Open")}</p><h3>Musabaqah prize fund</h3><p>Prizes and certificates for every category of the annual Qur&rsquo;an competition.</p></div>
-      <div class="card"><p class="kicker">{pill("Open")}</p><h3>Islamiyya materials</h3><p>Copies of the Qur&rsquo;an, whiteboards, printed notes and teaching materials for the weekend classes.</p></div>
+      <div class="card"><p class="kicker">{pill("Open")}</p><h3>Islamiyyah materials</h3><p>Copies of the Qur&rsquo;an, whiteboards, printed notes and teaching materials for the weekend classes.</p></div>
       <div class="card"><p class="kicker">{pill("Open")}</p><h3>Ramadan iftar</h3><p>Daily iftar for students who stay on campus through the month, and the Annual Ramadan Lecture and Iftar.</p></div>
     </div>
   </div>
@@ -320,7 +342,7 @@ GIVE = pagehead("Give",
       {soon("Accounts for " + D.SESSION, "Monthly statements of income, spending and balance will be published here.")}
       <h3 class="mt-l">How funds are used</h3>
       <ul>
-        <li><strong>Programmes:</strong> Islamiyya materials, tutorial printing and venue costs.</li>
+        <li><strong>Programmes:</strong> Islamiyyah materials, tutorial printing and venue costs.</li>
         <li><strong>Welfare:</strong> direct support to members in need.</li>
         <li><strong>Events:</strong> the Musabaqah, orientation, Eid gatherings and the sendforth.</li>
         <li><strong>Media:</strong> printing, design and this website.</li>
@@ -578,7 +600,7 @@ CONTACT = pagehead("Contact",
     <div class="mt-m">
       <details class="faq"><summary>What does AMSC stand for?</summary><p>The AFIT Muslim Students&rsquo; Community: the body serving Muslim students at the Air Force Institute of Technology, Kaduna.</p></details>
       <details class="faq"><summary>Who can join?</summary><p>Every Muslim student of the Institute, at any level and in any department. The IDIT training cohorts are also open to people outside AFIT.</p></details>
-      <details class="faq"><summary>How do I pay my dues?</summary><p>Through the payment link on the <a href="give.html">Give</a> page. Dues are &#8358;1,000 and above per semester.</p></details>
+      <details class="faq"><summary>How do I pay my dues?</summary><p>By bank transfer to the account on the <a href="give.html#dues">Give</a> page, or online with a card through the payment link on the same page. Dues are &#8358;1,000 and above per semester.</p></details>
       <details class="faq"><summary>Can I get a letter of attestation for a scholarship?</summary><p>Yes. Email the General Secretaries at {D.EMAIL} with your name, department, level and the scholarship, and allow a few days.</p></details>
       <details class="faq"><summary>How do I invite AMSC to an event or propose a partnership?</summary><p>Email {D.EMAIL}, addressed to the Ameer. Programmes involving external guests go through Institute clearance, so allow time.</p></details>
     </div>

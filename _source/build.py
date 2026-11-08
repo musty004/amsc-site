@@ -45,18 +45,22 @@ def prepare_css():
 
 def main():
     prepare_css()
+    portal_files()
     shell.ASSET_VER["css"] = short_hash(CSS)
     shell.ASSET_VER["js"] = short_hash(JS)
+    v = lambda rel: f"{rel}?v={short_hash(os.path.join(ROOT, rel))}"
+    portal_css = f'<link rel="stylesheet" href="{v("assets/portal.css")}">\n'
+    portal_js = ("portal-config.js", v("assets/vendor/supabase.js"), v("assets/portal-data.js"), v("assets/portal.js"))
 
     # pages import shell, so import them after the shell is configured
     import page_home as H
-    import pages_a as A, pages_b as B, pages_c as C, pages_d as Dd, pages_e as E
+    import pages_a as A, pages_b as B, pages_c as C, pages_d as Dd, pages_e as E, pages_f as F
 
     PAGES = [
-        # slug, title, description, body, nav item to highlight, extra <head>, noindex
+        # slug, title, description, body, nav item to highlight, extra <head>, noindex[, csp, scripts]
         ("index.html", "Home", "The AFIT Muslim Students’ Community (AMSC) at the Air Force Institute of Technology, Kaduna: building brotherhood and purpose through faith, and fostering academic excellence in Muslim students.", H.INDEX, "index.html", H.EXTRA_HEAD, False),
         ("about.html", "About AMSC", "Who the AFIT Muslim Students’ Community is: our mission, values, the meaning of our logo, and the committees that run the community.", A.ABOUT, None, "", False),
-        ("programmes.html", "Programmes", "Islamiyya, tutorials, IDIT digital skills training, the Sisters Circle, the annual Musabaqatul Qur’an, Da’wah Week and the Ramadan Lecture and Iftar.", A.PROGRAMMES, None, "", False),
+        ("programmes.html", "Programmes", "Islamiyyah, tutorials, IDIT digital skills training, the Sisters Circle, the annual Musabaqatul Qur’an, Da’wah Week and the Ramadan Lecture and Iftar.", A.PROGRAMMES, None, "", False),
         ("events.html", "Events", "The AMSC year: Freshers’ Orientation, IDIT, World Hijab Day, the Musabaqatul Qur’an, Ramadan, Eid and the FYB Sendforth Walimah.", B.EVENTS, None, "", False),
         ("executive.html", "Executive Committee", "What the AMSC Executive Committee does, and the nominees for the 1448 AH / 2026–2027 session, with roles, departments, levels and contacts.", E.EXECUTIVE, None, "", False),
         ("freshers.html", "Freshers’ guide", "AFIT freshers’ clearance and registration guide: documents to prepare, payments, the physical clearance route and who to call for help.", E.FRESHERS, None, "", False),
@@ -69,15 +73,19 @@ def main():
         ("sisters.html", "Sisters", "The sisters’ wing of AMSC: the Sisters Circle, the online Ta’alim, World Hijab Day, welfare and leadership.", C.SISTERS, "", "", False),
         ("amanah.html", "Amanah Desk", "The AMSC Amanah Desk: the lost-and-found of the AFIT Muslim Students’ Community. Report a lost or found item, join the group or chat with the officer.", E.AMANAH, "", "", False),
         ("welfare.html", "Welfare", "Your AMSC welfare officers: chat with them on WhatsApp for help settling in and finding your way on campus.", C.WELFARE, "", "", False),
-        ("library.html", "Library", "Islamiyya notes, Qur’an resources, reading lists and the past question bank.", C.LIBRARY, "", "", False),
+        ("library.html", "Library", "Islamiyyah notes, Qur’an resources, reading lists and the past question bank.", C.LIBRARY, "", "", False),
         ("give.html", "Give", "Semester dues, the welfare fund and named projects, with an account of how funds are used.", Dd.GIVE, "", "", False),
         ("alumni.html", "AMAN alumni network", "AMAN, the AFIT Muslim Alumni Network: register, mentor a student, share openings and give back.", Dd.ALUMNI, "", "", False),
+        ("islamiyyah.html", "Islamiyyah", "AFIT Muslim Students’ Islamiyyah: weekend Qur’an (Musaffa, Tajweed and Hifz), Arabic and Islamic book studies at the AFIT Mosque, Saturdays and Sundays, 9:00am to 12:30pm.", F.ISLAMIYYAH, "programmes.html", "", False),
+        ("portal.html", "Islamiyyah Student Portal", "Log in to the AMSC Islamiyyah Student Portal: Qur’an progress, books and notes, classes, teachers and announcements.", F.PORTAL, "", portal_css, True, PORTAL_CSP, portal_js),
         ("404.html", "Page not found", "This page could not be found.", E.NOT_FOUND, "", '<base href="/">\n', True),
     ]
 
     html_all = []
-    for slug, title, desc, body, current, extra, noindex in PAGES:
-        html = shell.page(slug, title, desc, body, current=current, extra_head=extra, noindex=noindex)
+    for slug, title, desc, body, current, extra, noindex, *more in PAGES:
+        csp, scripts = (more + [None, ()])[:2]
+        html = shell.page(slug, title, desc, body, current=current, extra_head=extra, noindex=noindex,
+                          csp=csp, scripts=scripts)
         with open(os.path.join(ROOT, slug), "w", encoding="utf-8") as f:
             f.write(html)
         html_all.append(html)
@@ -88,7 +96,7 @@ def main():
         if os.path.exists(p):
             os.remove(p)
 
-    fonts(html_all)
+    fonts(html_all + [open(os.path.join(ROOT, "assets", "portal-data.js"), encoding="utf-8").read()])
     netlify_files([p for p in PAGES if not p[6]])
     print(f"built {len(PAGES)} pages -> {ROOT}")
 
@@ -116,6 +124,55 @@ def fonts(html_all):
         shutil.copy(os.path.join(FONTS_SRC, lic), os.path.join(FONTS_OUT, lic))
 
 
+PORTAL_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://api.fontshare.com; "
+              "font-src 'self' https://cdn.fontshare.com; img-src 'self' data: blob:; "
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.aladhan.com; "
+              "object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'")
+
+PORTAL_CONFIG = """// Islamiyyah Student Portal: connection to the Supabase database.
+// Paste the two values from Supabase > Project Settings > API (or "Connect")
+// between the quotes, then save. Both are safe to publish: the database's
+// security rules decide who can see what.
+window.AMSC_PORTAL = {
+  supabaseUrl: "",   // looks like https://abcdefghijkl.supabase.co
+  supabaseKey: "",   // the "anon public" or "publishable" key
+  emailReset: false  // change to true only after setting up email (custom SMTP) in Supabase
+};
+"""
+
+
+def portal_files():
+    """Data the portal needs (surahs, juz, timetable), the surah list inside setup.sql,
+    and a blank portal-config.js the first time."""
+    import json, quran
+    data = {
+        "surahs": [list(x) for x in quran.SURAHS],
+        "juz": [list(x) for x in quran.JUZ_STARTS],
+        "timetable": [{"day": d, "start": a, "end": b, "title": t, "note": w} for d, a, b, t, w in D.ISLAMIYYAH_TIMETABLE],
+        "venue": D.ISLAMIYYAH_VENUE,
+        "books": [{"ar": a, "en": t, "subject": sj, "about": ab} for a, t, sj, ab in D.ISLAMIYYAH_BOOKS],
+        "helpWa": D.portal_help_wa(),
+    }
+    with open(os.path.join(ROOT, "assets", "portal-data.js"), "w", encoding="utf-8") as f:
+        f.write("/* Generated by _source/build.py from data.py and quran.py. Do not edit by hand. */\n")
+        f.write("window.AMSC_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n")
+    cfg = os.path.join(ROOT, "portal-config.js")
+    if not os.path.exists(cfg):
+        with open(cfg, "w", encoding="utf-8") as f:
+            f.write(PORTAL_CONFIG)
+    sql_path = os.path.join(HERE, "portal", "setup.sql")
+    sql = open(sql_path, encoding="utf-8").read()
+    q = lambda t: "'" + t.replace("'", "''") + "'"
+    rows = ",\n".join(f"  ({n}, {q(tr)}, {q(en)}, {q(a)}, {ay})" for n, tr, en, a, ay in quran.SURAHS)
+    block = ("-- BEGIN SURAHS (written by _source/build.py from _source/quran.py)\n"
+             "insert into public.surahs (number, name, meaning, name_ar, ayahs) values\n" + rows +
+             "\non conflict (number) do update set name = excluded.name, meaning = excluded.meaning,\n"
+             "  name_ar = excluded.name_ar, ayahs = excluded.ayahs;\n-- END SURAHS")
+    sql = re.sub(r"-- BEGIN SURAHS.*?-- END SURAHS", lambda m: block, sql, flags=re.S)
+    with open(sql_path, "w", encoding="utf-8") as f:
+        f.write(sql)
+
+
 def netlify_files(pages):
     today = date.today().isoformat()
     urls = "\n".join(
@@ -137,6 +194,8 @@ def netlify_files(pages):
   Cache-Control: public, max-age=0, must-revalidate
 /
   Cache-Control: public, max-age=0, must-revalidate
+/portal-config.js
+  Cache-Control: public, max-age=0, must-revalidate
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
@@ -148,8 +207,23 @@ def netlify_files(pages):
 /media           /gallery          301
 /press.html      /blog.html        301
 /press           /blog             301
+/portal          /portal.html      200
 # Keep the generator out of public view
 /_source/*       /404.html         404
+/netlify/*       /404.html         404
+""")
+    w("netlify.toml", """# Netlify settings for the AMSC site (written by _source/build.py).
+# The site is already built (plain HTML), so Netlify only publishes this folder.
+# To change content: edit files in _source/, run `python3 build.py` inside _source/,
+# then commit and push. Netlify goes live automatically after each push.
+[build]
+  publish = "."
+  command = ""
+
+# netlify/functions/keepalive.mjs pings the portal database once a day so the
+# free Supabase project is not paused for inactivity.
+[functions]
+  directory = "netlify/functions"
 """)
 
 

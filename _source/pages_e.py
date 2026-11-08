@@ -200,7 +200,7 @@ FRESHERS = f'''<section class="pagehead">
       <div class="card">{icon("briefcase")}<h3>Bursary Unit</h3><p>First clearance stop. Your printed payment receipts are verified and stamped here.</p></div>
       <div class="card">{icon("book")}<h3>Academic Branch</h3><p>Second stop. Submit your four complete sets of documents.</p></div>
       <div class="card">{icon("cap")}<h3>Your department</h3><p>Final stop. Complete your registration with the Departmental Officer.</p></div>
-      <div class="card">{icon("mosque")}<h3>AFIT Mosque</h3><p>Daily congregational prayers, weekend Islamiyya classes and the Friday Sisters Circle.</p></div>
+      <div class="card">{icon("mosque")}<h3>AFIT Mosque</h3><p>Daily congregational prayers, weekend Islamiyyah classes and the Friday Sisters Circle.</p></div>
       <div class="card">{icon("arch")}<h3>NAF Base Central Mosque</h3><p>Where we pray Jumu&rsquo;ah, beside the NAF Hospital.</p></div>
       <div class="card">{icon("star")}<h3>Air Force Primary School</h3><p>Where Eid prayers are usually held. The time is announced by the Imam at the Base Mosque.</p></div>
     </div>
@@ -248,7 +248,7 @@ FRESHERS = f'''<section class="pagehead">
     </div>
     <div class="grid grid--4">
       <a class="card" href="salah.html">{icon("mosque")}<h3>Where to pray</h3><p>Prayer times, jama&rsquo;ah times and where we pray daily, on Fridays and on Eid.</p></a>
-      <a class="card" href="programmes.html#timetable">{icon("calendar")}<h3>Weekly programmes</h3><p>Islamiyya, tutorials and the Sisters Circle, with days and venues.</p></a>
+      <a class="card" href="programmes.html#timetable">{icon("calendar")}<h3>Weekly programmes</h3><p>Islamiyyah, tutorials and the Sisters Circle, with days and venues.</p></a>
       <a class="card" href="academics.html">{icon("cap")}<h3>Academic support</h3><p>Tutorials taught by senior students, past questions and PDFNest.</p></a>
       <a class="card" href="{D.JOIN}">{icon("users")}<h3>Join AMSC</h3><p>Register as a member and get every announcement.</p></a>
     </div>

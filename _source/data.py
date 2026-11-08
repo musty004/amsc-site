@@ -42,7 +42,13 @@ WA_LINE_DISPLAY = "+234 902 759 7106"
 SUBSTACK = None
 
 # Carried over from the previous version of the site.
-DUES = "https://selar.com/u2vg771111"
+DUES = "https://selar.com/u2vg771111"   # online card payment for dues and the welfare fund
+# Semester dues by bank transfer, from the 2026/2027 "Semester Dues" flyer.
+# The account belongs to the Financial Officer; update all three lines when it changes.
+DUES_ACCOUNT_NUMBER = "2089476204"
+DUES_ACCOUNT_NAME = "Abdullahi Abdulrahman"
+DUES_BANK = "Kuda MFB"
+DUES_AMOUNT = "&#8358;1,000 and above"
 PQ = "https://drive.google.com/drive/folders/1fb8-RHPktAcA3E0Pl-qYUzApFLa60jUP"
 ALBUM_MUSABAQAH = "https://photos.app.goo.gl/in1m5R4zdyLntKKWA"
 # Freshers' Orientation 2025/1447 photo album
@@ -130,7 +136,7 @@ PORTFOLIOS = [
      "Records and minutes, correspondence, the membership register and letters "
      "of attestation for scholarship applications."),
     ("dawah", "Da’wah",
-     "Islamiyya classes, reminders, lectures, Da’wah Week and the anonymous "
+     "Islamiyyah classes, reminders, lectures, Da’wah Week and the anonymous "
      "question-and-answer sessions."),
     ("org", "Organising",
      "Planning and logistics for programmes and events: venues, set-up, "
@@ -204,7 +210,7 @@ def officer_wa(role, wing):
 
 def mudeer_wa():
     p = holder("Mudeer", "b")
-    return wa(p[4], "Assalamu alaykum, I would like access to the Islamiyya class notes.")
+    return wa(p[4], "Assalamu alaykum, I would like access to the Islamiyyah class notes.")
 
 
 # ---------------------------------------------------------------- prayer locations
@@ -219,3 +225,30 @@ AMANAH_WA = wa(AMANAH_NUMBER, "Assalamu alaykum, I am contacting the Amanah Desk
 # ---------------------------------------------------------------- PDFNest partnership
 PDFNEST_URL = "https://pdfnest.vercel.app"
 PDFNEST_WA = wa("07030586690", "Assalamu alaykum, I am an AFIT student from the AMSC website. Please help me get access to the PDFNest WhatsApp group.")
+
+# ---------------------------------------------------------------- Islamiyyah
+# From the AFIT Islaamiyyah Committee's 2026/2027 Programme Portfolio and the
+# "Islamiyyah classes are back" flyer.
+ISLAMIYYAH_VENUE = "AFIT Mosque"
+ISLAMIYYAH_DAYS = "Saturdays and Sundays"
+ISLAMIYYAH_HOURS = "9:00am to 12:30pm"
+# (day: 0 = Sunday … 6 = Saturday, start, end, session, who)
+ISLAMIYYAH_TIMETABLE = [
+    (6, "09:00", "11:00", "Musaffa, Tajweed and Hifz", "Grouped by Qur’an level"),
+    (6, "11:00", "12:30", "Arabic Language", "Grouped by Arabic level"),
+    (0, "09:00", "11:00", "Musaffa, Tajweed and Hifz", "Grouped by Qur’an level"),
+    (0, "11:00", "12:30", "Islamic Book Studies", "All students together"),
+]
+ARABIC_TEXT = ("دروس اللغة العربية", "Durus al-Lughah al-Arabiyyah")
+# (Arabic title, transliteration, subject, what it covers)
+ISLAMIYYAH_BOOKS = [
+    ("نواقض الإسلام", "Nawaqid al-Islam", "Aqeedah and Tawheed", "the foundations of Islamic belief and Tawheed"),
+    ("كتاب الأخضري", "Kitab al-Akhdari", "Fiqh", "foundational jurisprudence and practical worship"),
+    ("خلاصة نور اليقين", "Khulasat Nur al-Yaqeen", "Seerah", "the life, character and teachings of the Prophet ﷺ"),
+]
+PORTAL = "portal.html"
+
+
+def portal_help_wa():
+    p = holder("Mudeer", "b")
+    return wa(p[4], "Assalamu alaykum, I need help with the AMSC Islamiyyah Student Portal.")

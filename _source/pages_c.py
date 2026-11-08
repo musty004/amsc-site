@@ -24,7 +24,7 @@ SISTERS = pagehead("Sisters",
       <ul class="meta">
         <li>{icon("calendar")}<span><strong>Ta&rsquo;alim:</strong> Monday and Wednesday, 8:00pm, Google Meet</span></li>
         <li>{icon("calendar")}<span><strong>Sisters Circle:</strong> Friday, 4:00pm to 6:00pm, AFIT Masjid</span></li>
-        <li>{icon("calendar")}<span><strong>Islamiyya:</strong> Saturday and Sunday, 10:00am</span></li>
+        <li>{icon("calendar")}<span><strong>Islamiyyah:</strong> Saturday and Sunday, 10:00am</span></li>
       </ul>
       <div class="card__foot"><a class="btn btn--blue btn--sm" href="{D.JOIN}">Join AMSC</a></div>
     </aside>
@@ -211,10 +211,10 @@ LIBRARY = pagehead("Library",
       <h2>What is in the library</h2>
     </div>
     <div class="grid grid--3">
-      <article class="card">{icon("book")}<h3>Islamiyya notes</h3>
-        <p>Notes from the weekend classes, by subject: Tawheed, Fiqh, Seerah and Arabic. Useful if you
-        missed a week or want to revise.</p>
-        <div class="card__foot">{ext(D.mudeer_wa(), "Ask the Mudeer for access", "link")}</div></article>
+      <article class="card">{icon("book")}<h3>Islamiyyah notes</h3>
+        <p>Notes, books and audio from the weekend classes, by subject: Tawheed, Fiqh, Seerah and
+        Arabic. Registered Islamiyyah students download them from the Student Portal.</p>
+        <div class="card__foot"><a class="link" href="{D.PORTAL}">Open the Student Portal</a> {ext(D.mudeer_wa(), "Or ask the Mudeer", "link")}</div></article>
       <article class="card">{icon("quran")}<h3>Qur&rsquo;an resources</h3>
         <p>Tajwid guides, memorisation plans and the Musaffa reading schedule.</p>
         <div class="card__foot"><a class="link" href="programmes.html#musaffa">About Musaffa</a></div></article>
@@ -237,7 +237,7 @@ LIBRARY = pagehead("Library",
   <div class="wrap">
     <div class="sechead">
       <h2>Reading lists by stage</h2>
-      <p class="lede">Specific titles are recommended by the Da&rsquo;wah team and the Islamiyya
+      <p class="lede">Specific titles are recommended by the Da&rsquo;wah team and the Islamiyyah
       teachers, and checked before anything is added.</p>
     </div>
     <div class="grid grid--3">
@@ -258,7 +258,7 @@ LIBRARY = pagehead("Library",
       <p>The fastest way to make this collection useful is for members to add to it. Two things are
       always welcome:</p>
       <ul>
-        <li><strong>Notes:</strong> if you take good notes at Islamiyya, send a scan.</li>
+        <li><strong>Notes:</strong> if you take good notes at Islamiyyah, send a scan.</li>
         <li><strong>Books:</strong> physical copies you have finished with, for the shelf.</li>
       </ul>
       <div class="actions"><a class="btn btn--blue" href="join.html#volunteer-form">Offer to contribute</a></div>

@@ -571,5 +571,35 @@
  },
  "logo-mark": {
   "ratio": 1
+ },
+ "flyer-islamiyyah": {
+  "ratio": 1.25,
+  "sizes": [
+   {
+    "w": 480,
+    "h": 600,
+    "file": "flyer-islamiyyah-480.webp"
+   },
+   {
+    "w": 900,
+    "h": 1125,
+    "file": "flyer-islamiyyah-900.webp"
+   }
+  ]
+ },
+ "flyer-dues": {
+  "ratio": 1.25,
+  "sizes": [
+   {
+    "w": 480,
+    "h": 600,
+    "file": "flyer-dues-480.webp"
+   },
+   {
+    "w": 900,
+    "h": 1125,
+    "file": "flyer-dues-900.webp"
+   }
+  ]
  }
 }

@@ -173,7 +173,7 @@ EVENTS = pagehead("Events",
     </div>
     <ul class="tl">
       <li><span class="when">Start of session</span><h4>Freshers&rsquo; Orientation</h4><p>Date to be announced. Until then, new students can use the <a href="freshers.html">freshers&rsquo; guide</a>.</p></li>
-      <li><span class="when">From the first weekend</span><h4>Weekly programmes resume</h4><p>Islamiyya, tutorials, the Sisters Circle, Ta&rsquo;alim, Musaffa and fixtures restart together.</p></li>
+      <li><span class="when">From the first weekend</span><h4>Weekly programmes resume</h4><p>Islamiyyah, tutorials, the Sisters Circle, Ta&rsquo;alim, Musaffa and fixtures restart together.</p></li>
       <li><span class="when">Every Friday</span><h4>Jumu&rsquo;ah</h4><p>At the {D.JUMUAH_PLACE}.</p></li>
     </ul>
   </div>
@@ -189,7 +189,7 @@ EVENTS = pagehead("Events",
       <ul class="tl">
         <li><span class="when">Start of session</span><h4>Freshers&rsquo; Orientation</h4><p>New students meet the community, tour the mosque and campus, receive an academic survival guide and are paired with a mentor.</p></li>
         <li><span class="when">First weeks</span><h4>Registration and dues</h4><p>The membership register opens, level groups form and semester dues are announced.</p></li>
-        <li><span class="when">First semester</span><h4>Weekly programmes</h4><p>Islamiyya, tutorials, the Sisters Circle, Ta&rsquo;alim, Musaffa and fixtures set the rhythm early.</p></li>
+        <li><span class="when">First semester</span><h4>Weekly programmes</h4><p>Islamiyyah, tutorials, the Sisters Circle, Ta&rsquo;alim, Musaffa and fixtures set the rhythm early.</p></li>
         <li><span class="when">Holiday</span><h4>IDIT cohort</h4><p>Four weeks of online digital skills training, open beyond AFIT.</p></li>
         <li><span class="when">1 February</span><h4>World Hijab Day</h4><p>Talks and outreach led by the sisters&rsquo; wing.</p></li>
       </ul>
@@ -378,7 +378,7 @@ SALAH = pagehead("Prayer times",
         <ul class="meta">
           <li>{icon("users")}Brothers and sisters, separate sections</li>
           <li>{icon("clock")}All five daily prayers in congregation</li>
-          <li>{icon("star")}Islamiyya and the Sisters Circle</li>
+          <li>{icon("star")}Islamiyyah and the Sisters Circle</li>
         </ul>
         <p>The main mosque on campus and the home of the community. Wudu facilities available.</p>
       </div>

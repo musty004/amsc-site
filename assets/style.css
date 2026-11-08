@@ -837,3 +837,36 @@ body.has-done{overflow:hidden}
   .section{padding-block:14pt}
   a{color:#000}
 }
+
+/* ---------------------------------------------------------------- Islamiyyah page */
+.islamiyyah-flyer{margin:0;max-width:420px;justify-self:center;border:1px solid var(--line);box-shadow:0 22px 44px -30px rgba(11,37,89,.45)}
+.levels{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.levels li{display:grid;gap:2px;padding:12px 14px;border-radius:var(--r-sm);background:var(--mist)}
+.levels strong{color:var(--ink)}
+.levels span{font-size:.93rem;color:var(--muted)}
+.books{list-style:none;margin:0;padding:0;display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.books li{display:flex;flex-direction:column;gap:4px;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:clamp(20px,2.4vw,28px)}
+.book-ar .ar{display:block;font-size:1.6rem;line-height:1.8;color:var(--blue);text-align:right}
+.books strong{font-size:1.1rem;color:var(--ink)}
+.book-sub{font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--green-ink)}
+.book-about{color:var(--muted);font-size:.95rem}
+.hadith{margin:0;padding:clamp(24px,3vw,36px);border-radius:var(--r-lg);background:var(--blue) var(--girih);color:#fff}
+.hadith p{color:#fff;margin:0 0 12px;font-size:1.05rem}
+.hadith__ar .ar{display:block;font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:2;color:var(--yellow);text-align:right}
+.hadith footer{color:var(--on-blue);font-size:.9rem;font-weight:600}
+@media (max-width:900px){.books{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------------------------------------------------------------- dues payment card */
+.paycard{margin:22px 0;border:2px solid var(--blue);border-radius:var(--r-lg);overflow:hidden;background:#fff;max-width:560px}
+.paycard__h{margin:0;padding:14px 22px;background:var(--blue);color:#fff;font-size:1.05rem;letter-spacing:.04em;text-transform:uppercase}
+.paycard__list{margin:0;padding:8px 22px 4px}
+.paycard__list div{padding:12px 0;border-bottom:1px solid var(--line)}
+.paycard__list div:last-child{border-bottom:0}
+.paycard__list dt{font-size:.85rem;color:var(--muted);margin-bottom:2px}
+.paycard__list dd{margin:0;font-weight:700;font-size:1.15rem;color:var(--ink)}
+.paycard__num{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px}
+.paycard__num span{font-family:var(--display);font-size:clamp(1.7rem,6vw,2.1rem);letter-spacing:.04em;font-variant-numeric:tabular-nums;user-select:all}
+.paycard__copy{min-width:96px}
+.paycard__note{margin:0;padding:12px 22px 18px;font-size:.92rem;color:var(--muted);background:var(--mist)}
+.give-flyer{margin:0;max-width:400px;justify-self:center;border:1px solid var(--line);box-shadow:0 22px 44px -30px rgba(11,37,89,.45)}
+.section--flush{padding-top:0}

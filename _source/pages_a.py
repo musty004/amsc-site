@@ -18,7 +18,7 @@ ABOUT = pagehead("About AMSC",
       <p>Rooted in Islamic values and guided by sincerity, discipline, faith and brotherhood, the
       community provides a space for students to grow in deen and character through worship,
       service, learning and positive impact on campus.</p>
-      <p>AMSC is more than a religious group. We run the Islamiyya classes and the Qur&rsquo;an
+      <p>AMSC is more than a religious group. We run the Islamiyyah classes and the Qur&rsquo;an
       circles, and we also run weekend tutorials, digital skills training and a welfare network,
       so that no Muslim student at AFIT has to work out student life alone.</p>
       <p>Membership is open to every Muslim student of the Institute, whatever their department,
@@ -116,7 +116,7 @@ ABOUT = pagehead("About AMSC",
       <div><a class="btn btn--blue" href="executive.html">Meet the Executive Committee</a></div>
     </div>
     <div class="grid grid--3">
-      <div class="card">{icon("quran")}<h3>Da&rsquo;wah</h3><p>Islamiyya, reminders, lectures, Da&rsquo;wah Week and the anonymous question-and-answer sessions.</p></div>
+      <div class="card">{icon("quran")}<h3>Da&rsquo;wah</h3><p>Islamiyyah, reminders, lectures, Da&rsquo;wah Week and the anonymous question-and-answer sessions.</p></div>
       <div class="card">{icon("cap")}<h3>Academics</h3><p>Schedules tutorials, recruits tutors and maintains the past question bank.</p></div>
       <div class="card">{icon("heart")}<h3>Welfare</h3><p>Helps new students settle in, visits members who are unwell and keeps in touch with students across the session.</p></div>
       <div class="card">{icon("camera")}<h3>Media and public relations</h3><p>Design, photography, video, announcements, the social channels and this website.</p></div>
@@ -144,7 +144,7 @@ PROGRAMMES = pagehead("Programmes",
       <div class="prog-group">
         <h2>Every week</h2>
         <ul>
-          {prog("#islamiyya", "quran", "Islamiyya", "Classes in Qur&rsquo;an, Arabic, Fiqh, Tawheed and Islamic knowledge.")}
+          {prog("#islamiyya", "quran", "Islamiyyah", "Classes in Qur&rsquo;an, Arabic, Fiqh, Tawheed and Islamic knowledge.")}
           {prog("#tutorials", "cap", "Tutorials", "Academic support for students who may be struggling with their studies.")}
           {prog("#sisters-circle", "users", "Sisters Circle", "A club for Muslim sisters: sisterhood, support, connection and personal development.")}
         </ul>
@@ -178,7 +178,7 @@ PROGRAMMES = pagehead("Programmes",
       <table class="table">
         <thead><tr><th scope="col">Programme</th><th scope="col">Day</th><th scope="col">Time</th><th scope="col">Venue</th><th scope="col">Open to</th></tr></thead>
         <tbody>
-          <tr><td><a href="#islamiyya">Islamiyya</a></td><td>Saturday and Sunday</td><td>10:00am to 11:30am</td><td>AFIT Mosque</td><td>Everyone</td></tr>
+          <tr><td><a href="islamiyyah.html">Islamiyyah</a></td><td>Saturday and Sunday</td><td>9:00am to 12:30pm</td><td>AFIT Mosque</td><td>Everyone</td></tr>
           <tr><td><a href="#tutorials">Tutorials</a></td><td>Weekends</td><td>Timetable coming soon</td><td>Lecture rooms, announced</td><td>By level</td></tr>
           <tr><td><a href="#sisters-circle">Sisters Circle</a></td><td>Friday</td><td>4:00pm to 6:00pm</td><td>AFIT Masjid, female section</td><td>Sisters</td></tr>
           <tr><td><a href="#taalim">Sisters&rsquo; Ta&rsquo;alim</a></td><td>Monday and Wednesday</td><td>8:00pm</td><td>Online (Google Meet)</td><td>Sisters</td></tr>
@@ -193,29 +193,30 @@ PROGRAMMES = pagehead("Programmes",
 <section class="section" id="islamiyya">
   <div class="wrap split">
     <div>
-      <p class="kicker">{pill("Every weekend")} AFIT Mosque</p>
-      <h2>Islamiyya</h2>
-      <p class="lede">Classes focused on the Qur&rsquo;an, Arabic, Fiqh, Tawheed and Islamic
-      knowledge.</p>
-      <p>The core teaching programme of the community runs on both weekend mornings for ninety
-      minutes. Classes are streamed by level, so a complete beginner and someone who has studied
-      for years both sit in the right room. Bring a notebook, and come on time.</p>
+      <p class="kicker">{pill("Every weekend")} {D.ISLAMIYYAH_VENUE}</p>
+      <h2>Islamiyyah</h2>
+      <p class="lede">Weekend Islamic education: Qur&rsquo;an, Arabic and Islamic book studies,
+      taught by students for students.</p>
+      <p>Qur&rsquo;an sessions cover Musaffa, Tajweed and Hifz, with students grouped by ability.
+      Arabic is taught at three levels, and on Sunday everyone studies selected texts on
+      Tawheed, Fiqh and Seerah together. Registered students track their Qur&rsquo;an progress
+      and download class materials in the Student Portal.</p>
       <ul class="meta">
-        <li>{icon("calendar")}Saturdays and Sundays</li>
-        <li>{icon("clock")}10:00am to 11:30am</li>
-        <li>{icon("pin")}AFIT Mosque</li>
+        <li>{icon("calendar")}{D.ISLAMIYYAH_DAYS}</li>
+        <li>{icon("clock")}{D.ISLAMIYYAH_HOURS}</li>
+        <li>{icon("pin")}{D.ISLAMIYYAH_VENUE}</li>
       </ul>
+      <div class="actions"><a class="btn btn--blue" href="islamiyyah.html">About the Islamiyyah</a>
+        <a class="btn btn--line" href="{D.PORTAL}">Student Portal</a></div>
     </div>
     <div class="card card--mist">
-      <h3>What is taught</h3>
+      <h3>The weekend timetable</h3>
       <ul class="meta">
-        <li>{icon("quran")}Qur&rsquo;an reading and tajwid, from the very beginning</li>
-        <li>{icon("pen")}Arabic letters, reading and basic grammar</li>
-        <li>{icon("mosque")}Fiqh of purification, prayer, fasting and zakat</li>
-        <li>{icon("book")}Tawheed, the foundations of belief</li>
-        <li>{icon("star")}Seerah and the lives of the companions</li>
+        <li>{icon("quran")}Saturday and Sunday, 9:00 to 11:00am: Musaffa, Tajweed and Hifz</li>
+        <li>{icon("pen")}Saturday, 11:00am to 12:30pm: Arabic Language</li>
+        <li>{icon("book")}Sunday, 11:00am to 12:30pm: Islamic Book Studies</li>
       </ul>
-      <div class="card__foot"><a class="link" href="library.html">Class notes and resources</a></div>
+      <div class="card__foot"><a class="link" href="islamiyyah.html#timetable">Levels and texts</a></div>
     </div>
   </div>
 </section>
@@ -401,7 +402,7 @@ JOIN = pagehead("Join AMSC",
         <h3>What membership gives you</h3>
         <ul class="meta">
           <li>{icon("cap")}Weekend tutorials and the past question bank</li>
-          <li>{icon("quran")}Islamiyya, Musaffa and the Ta&rsquo;alim circles</li>
+          <li>{icon("quran")}Islamiyyah, Musaffa and the Ta&rsquo;alim circles</li>
           <li>{icon("heart")}Welfare officers to help you settle in</li>
           <li>{icon("star")}Attestation letters for scholarship applications</li>
           <li>{icon("users")}Mentorship from senior students and alumni</li>
@@ -421,19 +422,21 @@ JOIN = pagehead("Join AMSC",
   <div class="wrap split">
     <div>
       <h2>Semester dues</h2>
-      <p>Dues are <strong>&#8358;1,000 and above</strong> per semester. They pay for Islamiyya
-      materials, tutorial venues and printing, and events like the Musabaqah.</p>
+      <p>Dues are <strong>&#8358;1,000 and above</strong> per semester, paid by bank transfer to
+      {D.DUES_ACCOUNT_NUMBER} ({D.DUES_ACCOUNT_NAME}, {D.DUES_BANK}). They pay for Islamiyyah
+      materials, tutorial venues and printing, and events like the Musabaqah. You can also pay
+      online with a card.</p>
       <p>If dues are difficult for you this semester, your membership continues unchanged.
       Nobody is removed for not paying.</p>
       <div class="actions">
-        <a class="btn btn--blue" href="{D.DUES}" target="_blank" rel="noopener">Pay dues<span class="sr-only"> (opens in a new tab)</span></a>
-        <a class="btn btn--line" href="give.html">Other ways to give</a>
+        <a class="btn btn--blue" href="give.html#dues">Payment details</a>
+        {ext(D.DUES, "Pay online", "btn btn--line")}
       </div>
     </div>
     <div class="card">
       <h3>Where the money goes</h3>
       <ul class="meta">
-        <li>{icon("quran")}Islamiyya and Da&rsquo;wah programmes</li>
+        <li>{icon("quran")}Islamiyyah and Da&rsquo;wah programmes</li>
         <li>{icon("cap")}Tutorials, printing and past question digitisation</li>
         <li>{icon("heart")}Welfare activities</li>
         <li>{icon("calendar")}The Musabaqah, orientation and the sendforth</li>
@@ -456,7 +459,7 @@ JOIN = pagehead("Join AMSC",
       <div class="card"><h3>Photo and video</h3><p>Cover events and keep the community&rsquo;s record.</p></div>
       <div class="card"><h3>Writers</h3><p>Event reports and articles for the blog.</p></div>
       <div class="card"><h3>Ushers</h3><p>Set-up, registration and crowd control at major events.</p></div>
-      <div class="card"><h3>Qur&rsquo;an tutors</h3><p>Help beginners with reading and tajwid at Islamiyya.</p></div>
+      <div class="card"><h3>Qur&rsquo;an tutors</h3><p>Help beginners with reading and tajwid at Islamiyyah.</p></div>
       <div class="card"><h3>Welfare visitors</h3><p>Visit members who are unwell and welcome new students.</p></div>
       <div class="card"><h3>Developers</h3><p>Maintain this website and build the tools we still need.</p></div>
     </div>
@@ -480,7 +483,7 @@ JOIN = pagehead("Join AMSC",
     </div>
     <div>
       <h2 class="sr-only">Questions</h2>
-      <details class="faq"><summary>Do I have to be very knowledgeable to join?</summary><p>No. Islamiyya exists because people start from different places. Beginners&rsquo; Qur&rsquo;an reading is one of our best-attended classes.</p></details>
+      <details class="faq"><summary>Do I have to be very knowledgeable to join?</summary><p>No. Islamiyyah exists because people start from different places. Beginners&rsquo; Qur&rsquo;an reading is one of our best-attended classes.</p></details>
       <details class="faq"><summary>Is AMSC tied to one school of thought?</summary><p>No. AMSC serves every Muslim student at AFIT. Differences of opinion are discussed with adab and never used to exclude anyone.</p></details>
       <details class="faq"><summary>How do I get into the WhatsApp Community?</summary><p>Fill in the registration form above. An AMSC admin adds you with the phone number you give.</p></details>
       <details class="faq"><summary>Can sisters take part fully?</summary><p>Yes. The sisters&rsquo; wing has its own Circle, Ta&rsquo;alim and leaders, and a share in every major event. See the <a href="sisters.html">sisters&rsquo; page</a>.</p></details>

@@ -130,6 +130,27 @@
   document.querySelectorAll('[data-print]').forEach(function (b) {
     b.addEventListener('click', function () { window.print(); });
   });
+  // copy a value (the dues account number), with a fallback for older phones
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    var label = b.innerHTML;
+    function done(ok) {
+      b.textContent = ok ? 'Copied' : 'Press and hold the number to copy';
+      b.setAttribute('aria-live', 'polite');
+      setTimeout(function () { b.innerHTML = label; }, 2500);
+    }
+    b.addEventListener('click', function () {
+      var v = b.getAttribute('data-copy');
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(v).then(function () { done(true); }, function () { done(false); });
+      } else {
+        var t = document.createElement('textarea');
+        t.value = v; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+        document.body.appendChild(t); t.select();
+        var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+        t.remove(); done(ok);
+      }
+    });
+  });
 })();
 
 /* ---------- 4. checklist ---------- */
