@@ -150,7 +150,13 @@ def portal_files():
         "juz": [list(x) for x in quran.JUZ_STARTS],
         "timetable": [{"day": d, "start": a, "end": b, "title": t, "note": w} for d, a, b, t, w in D.ISLAMIYYAH_TIMETABLE],
         "venue": D.ISLAMIYYAH_VENUE,
-        "books": [{"ar": a, "en": t, "subject": sj, "about": ab} for a, t, sj, ab in D.ISLAMIYYAH_BOOKS],
+        "arabicText": dict({"ar": D.ARABIC_TEXT[0], "en": D.ARABIC_TEXT[1]},
+                           **({"file": D.BOOK_FILES[D.ARABIC_TEXT[1]][0], "pages": D.BOOK_FILES[D.ARABIC_TEXT[1]][1]}
+                              if D.ARABIC_TEXT[1] in D.BOOK_FILES else {})),
+        "books": [dict({"ar": a, "en": t, "subject": sj, "about": ab},
+                       **({"file": D.BOOK_FILES[t][0], "pages": D.BOOK_FILES[t][1], "note": D.BOOK_FILES[t][2]}
+                          if t in D.BOOK_FILES and os.path.exists(os.path.join(ROOT, D.BOOK_FILES[t][0])) else {}))
+                  for a, t, sj, ab in D.ISLAMIYYAH_BOOKS],
         "helpWa": D.portal_help_wa(),
     }
     with open(os.path.join(ROOT, "assets", "portal-data.js"), "w", encoding="utf-8") as f:

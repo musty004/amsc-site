@@ -10,6 +10,7 @@
   var DATA = window.AMSC_DATA;
   var root = document.getElementById('portal');
   if (!root) return;
+  window.AMSC_PORTAL_STARTED = true;
 
   // ===================================================================== helpers
   function Safe(s) { this.s = s; }
@@ -1020,8 +1021,11 @@
           <h3 id="c-groups">${icon('users')}My groups</h3>
           ${groupCard('Qur’an', S.me.quran_group, S.me.quran_level, QLEVEL)}
           ${groupCard('Arabic', S.me.arabic_group, S.me.arabic_level, LEVEL)}
+          ${DATA.arabicText && DATA.arabicText.file ? html`<div class="pt-group"><h4>Arabic textbook</h4><p><span lang="ar" dir="rtl" class="pt-ar">${DATA.arabicText.ar}</span> ${DATA.arabicText.en} <a href="${DATA.arabicText.file}" download>Download PDF<span class="sr-only"> of ${DATA.arabicText.en}</span></a></p></div>` : ''}
           <div class="pt-group"><h4>Islamic book studies (Sunday)</h4><p class="pt-meta">All students study together.</p>
-            <ul class="pt-books">${DATA.books.map(function (b) { return html`<li><span lang="ar" dir="rtl" class="pt-ar">${b.ar}</span> ${b.en}: ${b.about}</li>`; })}</ul></div>
+            <ul class="pt-books">${DATA.books.map(function (b) {
+              return html`<li><span lang="ar" dir="rtl" class="pt-ar">${b.ar}</span> ${b.en}: ${b.about}${b.file ? html` <a href="${b.file}" download>Download PDF<span class="sr-only"> of ${b.en}</span></a>` : ''}</li>`;
+            })}</ul></div>
         </section>
         <section class="pt-card" aria-labelledby="c-teachers">
           <h3 id="c-teachers">${icon('star')}My teachers</h3>
@@ -1555,12 +1559,23 @@
   }
 
   // ===================================================================== start
+  function bootFailed(e) {
+    root.innerHTML = out(html`<div class="pt-auth"><div class="pt-auth__card"><p class="pt-auth__kicker">Islamiyyah Student Portal</p>
+      <h2>The portal did not open</h2>${errorBox(e)}<a class="btn btn--blue pt-wide" href="">Refresh the page</a>${helpLink('Tell the Islamiyyah admin on WhatsApp')}</div></div>`);
+    root.setAttribute('aria-busy', 'false');
+    if (window.console) console.error('[portal]', e);
+  }
   async function boot() {
-    if (!DATA) { root.innerHTML = '<p class="pt-error" role="alert">The portal could not load. Refresh the page.</p>'; return; }
+    if (!DATA) return bootFailed(new Error('A portal file did not load. Check your connection and refresh the page.'));
     if (!CFG.supabaseUrl || !CFG.supabaseKey) return viewNotReady();
-    if (!window.supabase || !window.supabase.createClient) { root.innerHTML = out(errorBox(new Error('A portal file did not load. Check your connection and refresh the page.'))); return; }
-    S.sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'amsc-portal-auth' }
+    if (!window.supabase || !window.supabase.createClient) return bootFailed(new Error('A portal file did not load. Check your connection and refresh the page.'));
+    S.sb = window.supabase.createClient(CFG.supabaseUrl.trim(), CFG.supabaseKey.trim(), {
+      auth: {
+        persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'amsc-portal-auth',
+        // Run auth steps directly instead of through the browser's cross-tab lock, which can
+        // stall on some browsers and leave the page loading forever.
+        lock: function (name, acquireTimeout, fn) { return fn(); }
+      }
     });
     S.sb.auth.onAuthStateChange(function (event, session) {
       if (event === 'PASSWORD_RECOVERY') {
@@ -1573,15 +1588,22 @@
     });
     window.addEventListener('hashchange', function () { route(); });
     try {
-      var s = await run(S.sb.auth.getSession());
+      // A saved session is read from this browser; if that ever stalls, start signed out.
+      var s = await Promise.race([
+        run(S.sb.auth.getSession()),
+        new Promise(function (resolve) { setTimeout(function () { resolve({ session: null }); }, 8000); })
+      ]);
       S.user = s.session ? s.session.user : null;
       if (S.user) await loadMe();
     } catch (e) {
-      root.innerHTML = out(html`<div class="pt-auth"><div class="pt-auth__card">${errorBox(e)}<a class="btn btn--blue pt-wide" href="">Try again</a></div></div>`);
-      return;
+      return bootFailed(e);
     }
     S.focusNext = false;
     route();
   }
-  boot();
+  // Nothing on screen after 20 seconds means something is stuck: say so instead of spinning.
+  setTimeout(function () {
+    if (root.getAttribute('aria-busy') === 'true') bootFailed(new Error('The portal is taking too long to start. Check your internet connection and refresh the page.'));
+  }, 20000);
+  boot().catch(bootFailed);
 })();

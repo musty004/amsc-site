@@ -870,3 +870,5 @@ body.has-done{overflow:hidden}
 .paycard__note{margin:0;padding:12px 22px 18px;font-size:.92rem;color:var(--muted);background:var(--mist)}
 .give-flyer{margin:0;max-width:400px;justify-self:center;border:1px solid var(--line);box-shadow:0 22px 44px -30px rgba(11,37,89,.45)}
 .section--flush{padding-top:0}
+.book-dl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:auto;padding-top:14px}
+.book-meta{font-size:.85rem;color:var(--muted)}

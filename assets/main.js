@@ -251,3 +251,17 @@ function amscDone(title, text) {
     frame.src = box.getAttribute('data-gform');
   });
 })();
+
+/* ---------- portal safety net: if the portal app never starts, explain instead of spinning ---------- */
+(function () {
+  var box = document.getElementById('portal');
+  if (!box) return;
+  setTimeout(function () {
+    if (box.getAttribute('aria-busy') !== 'true' || window.AMSC_PORTAL_STARTED) return;
+    box.setAttribute('aria-busy', 'false');
+    box.innerHTML = '<div class="pt-auth"><div class="pt-auth__card"><p class="pt-auth__kicker">Islamiyyah Student Portal</p>' +
+      '<h2>The portal did not open</h2><p>A portal file did not load. Check your internet connection, then refresh the page ' +
+      '(on a laptop, press Ctrl and F5 together). If it keeps happening, tell the Islamiyyah admin.</p>' +
+      '<a class="btn btn--blue pt-wide" href="">Refresh the page</a></div></div>';
+  }, 25000);
+})();

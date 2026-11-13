@@ -244,8 +244,16 @@ ARABIC_TEXT = ("دروس اللغة العربية", "Durus al-Lughah al-Arabiyy
 ISLAMIYYAH_BOOKS = [
     ("نواقض الإسلام", "Nawaqid al-Islam", "Aqeedah and Tawheed", "the foundations of Islamic belief and Tawheed"),
     ("كتاب الأخضري", "Kitab al-Akhdari", "Fiqh", "foundational jurisprudence and practical worship"),
-    ("خلاصة نور اليقين", "Khulasat Nur al-Yaqeen", "Seerah", "the life, character and teachings of the Prophet ﷺ"),
+    ("خلاصة نور اليقين", "Khulasat Nur al-Yaqeen", "Seerah", "the life, character and teachings of the Prophet Muhammad (peace be upon him)"),
 ]
+# Free PDF copies of the Sunday texts, downloadable from the Islamiyyah page and the portal.
+# (file in assets/books/, pages, edition note)
+BOOK_FILES = {
+    "Nawaqid al-Islam": ("assets/books/nawaqid-al-islam.pdf", 6, ""),
+    "Kitab al-Akhdari": ("assets/books/matn-al-akhdari.pdf", 19, "Matn al-Akhdari"),
+    "Khulasat Nur al-Yaqeen": ("assets/books/khulasat-nur-al-yaqeen-part-1.pdf", 65, "Part 1"),
+    "Durus al-Lughah al-Arabiyyah": ("assets/books/durus-al-lughah-al-arabiyyah-book-1.pdf", 127, "Book 1, by Dr V. Abdur-Raheem"),
+}
 PORTAL = "portal.html"
 
 

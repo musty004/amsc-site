@@ -14,9 +14,26 @@ rows = "".join(
     f'<tr><td>{DAYS[d]}</td><td>{t12(a)} to {t12(b)}</td><td>{title}</td><td>{who}</td></tr>'
     for d, a, b, title, who in D.ISLAMIYYAH_TIMETABLE)
 
+def book_download(title):
+    """A download button for a book's PDF, when the file is on the site."""
+    import os
+    if title not in D.BOOK_FILES:
+        return ""
+    path, pages, note = D.BOOK_FILES[title]
+    full = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", path)
+    if not os.path.exists(full):
+        return ""
+    size = os.path.getsize(full)
+    size_txt = f"{size / 1048576:.1f}&nbsp;MB" if size >= 1048576 * 0.95 else f"{max(1, round(size / 1024))}&nbsp;KB"
+    meta = " &middot; ".join(x for x in (note, f"{pages} pages", f"PDF, {size_txt}") if x)
+    return (f'<span class="book-dl"><a class="btn btn--sm btn--blue" href="{path}" download>{icon("download")}'
+            f'Download<span class="sr-only"> {title} (PDF, {size_txt})</span></a>'
+            f'<span class="book-meta">{meta}</span></span>')
+
+
 books = "".join(
     f'<li><span class="book-ar">{ar(a)}</span><strong>{t}</strong><span class="book-sub">{subj}</span>'
-    f'<span class="book-about">An introduction to {about}.</span></li>'
+    f'<span class="book-about">An introduction to {about}.</span>{book_download(t)}</li>'
     for a, t, subj, about in D.ISLAMIYYAH_BOOKS)
 
 ISLAMIYYAH = pagehead(
@@ -31,7 +48,7 @@ ISLAMIYYAH = pagehead(
       <p class="lede">The Islamiyyah gives students structured Qur&rsquo;anic, Arabic and Islamic
       studies alongside their regular academic work.</p>
       <p>Improve your recitation and memorisation, build your Arabic, and study foundational texts
-      on belief, worship and the life of the Prophet &#xFDFA;. Classes are grouped by ability, so
+      on belief, worship and the life of the Prophet Muhammad (peace be upon him). Classes are grouped by ability, so
       a complete beginner and a student completing their Hifz both learn at the right level.</p>
       <ul class="meta">
         <li>{icon("calendar")}{D.ISLAMIYYAH_DAYS}</li>
@@ -94,7 +111,7 @@ ISLAMIYYAH = pagehead(
           <li><strong>Beginner</strong><span>Basic Arabic language</span></li>
           <li><strong>Intermediate</strong><span>Reading, comprehension and language development</span></li>
           <li><strong>Advanced</strong><span>Higher-level Arabic and engagement with Islamic learning</span></li>
-        </ul></article>
+        </ul>{book_download(D.ARABIC_TEXT[1])}</article>
     </div>
   </div>
 </section>
@@ -104,7 +121,8 @@ ISLAMIYYAH = pagehead(
     <div class="sechead">
       <h2>Islamic Book Studies</h2>
       <p class="lede">Sunday, 11:00am to 12:30pm. Unlike the Qur&rsquo;an and Arabic classes, all
-      students gather together. The texts rotate flexibly through the session.</p>
+      students gather together. The texts rotate flexibly through the session. Download a free
+      copy of each text to read before class.</p>
     </div>
     <ul class="books">{books}</ul>
   </div>
