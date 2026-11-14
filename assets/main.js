@@ -244,8 +244,8 @@ function amscDone(title, text) {
       loads++;
       if (loads === 2) {
         box.scrollIntoView({ block: 'start' });
-        amscDone('Registration received',
-          'JazakAllahu khayran. Your details have reached AMSC, and you will be added to the AMSC WhatsApp Community soon. A copy of your answers has been sent to your email.');
+        amscDone(box.getAttribute('data-done-title') || 'Registration received',
+          box.getAttribute('data-done-text') || 'JazakAllahu khayran. Your details have reached AMSC, and you will be added to the AMSC WhatsApp Community soon. A copy of your answers has been sent to your email.');
       }
     });
     frame.src = box.getAttribute('data-gform');

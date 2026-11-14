@@ -872,3 +872,22 @@ body.has-done{overflow:hidden}
 .section--flush{padding-top:0}
 .book-dl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:auto;padding-top:14px}
 .book-meta{font-size:.85rem;color:var(--muted)}
+
+/* ---------------------------------------------------------------- Dawrah page */
+.dawrah{display:grid;gap:clamp(28px,4vw,56px);grid-template-columns:minmax(0,1fr)}
+@media (min-width:980px){.dawrah{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:start}}
+.dawrah__info h3{margin:28px 0 10px}
+.dawrah__form .h3{margin:0;font-size:1.3rem}
+.dawrah__form .gform{margin-top:12px}
+.dawrah__form .gform iframe{height:1650px}
+@media (max-width:640px){.dawrah__form .gform iframe{height:1950px}}
+.facts{display:grid;gap:0;margin:20px 0 0;border-top:1px solid var(--line)}
+.facts div{display:grid;grid-template-columns:minmax(0,8.5em) minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.facts dt{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--ink)}
+.facts dt svg{width:18px;height:18px;color:var(--blue);flex:none}
+.facts dd{margin:0}
+.steps-simple{margin:0;padding-left:22px;display:grid;gap:8px}
+.steps-simple strong{color:var(--ink)}
+.contacts-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.contacts-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;background:#fff;border:1px solid var(--line);border-radius:var(--r)}
+.contacts-list strong{color:var(--ink)}

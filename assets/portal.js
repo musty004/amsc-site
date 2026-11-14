@@ -1,4 +1,4 @@
-/* AMSC Islamiyyah Student Portal
+/* AMSC Student Portal (Islamiyyah and Dawrah)
    One page app: sign-up and log-in, the student dashboard, Qur'an progress, library,
    classes and profile, plus teacher and admin tools.
    Data lives in Supabase. Who can see or change what is enforced by the database's
@@ -462,7 +462,7 @@
   function authFrame(title, lede, body) {
     setRoot(html`<div class="pt-auth">
       <div class="pt-auth__card">
-        <p class="pt-auth__kicker">Islamiyyah Student Portal</p>
+        <p class="pt-auth__kicker">AMSC Student Portal</p>
         <h2 id="pt-h" tabindex="-1">${title}</h2>
         ${lede ? html`<p class="pt-auth__lede">${lede}</p>` : ''}
         ${body}
@@ -474,16 +474,23 @@
   var TABS = [
     ['dashboard', 'Dashboard'], ['quran', 'Qur’an'], ['library', 'Library'], ['classes', 'Classes'], ['profile', 'Profile']
   ];
+  var dawrahAccess = function () { var d = S.dawrah; return !!(d && d.term && (d.student || d.admin)); };
+  var dawrahOnly = function () { return S.me && S.me.status === 'pending' && dawrahAccess(); };
   function shell(active) {
-    var tabs = TABS.slice();
-    if (isStaff()) tabs.push(['teach', 'Teaching'], ['notices', 'Notices']);
-    if (isAdmin()) tabs.push(['admin', 'Admin']);
+    var tabs;
+    if (dawrahOnly()) tabs = [['dawrah', 'Dawrah'], ['profile', 'Profile']];
+    else {
+      tabs = TABS.slice();
+      if (dawrahAccess()) tabs.splice(1, 0, ['dawrah', 'Dawrah']);
+      if (isStaff()) tabs.push(['teach', 'Teaching'], ['notices', 'Notices']);
+      if (isAdmin()) tabs.push(['admin', 'Admin']);
+    }
     var map = { student: 'teach', member: 'admin', members: 'admin', groups: 'admin' };
-    var cur = map[active] || active || 'dashboard';
+    var cur = map[active] || active || (dawrahOnly() ? 'dawrah' : 'dashboard');
     setRoot(html`<div class="pt-shell">
       <div class="pt-top">
         <div class="pt-who"><span class="pt-mono" aria-hidden="true">${initials(S.me.full_name)}</span>
-          <div><strong>${S.me.full_name}</strong><span>${ROLE[S.me.role]}${S.me.wing ? ' · ' + WING[S.me.wing] : ''}</span></div></div>
+          <div><strong>${S.me.full_name}</strong><span>${dawrahOnly() ? (S.dawrah.admin ? 'Dawrah admin' : 'Dawrah student') : ROLE[S.me.role]}${S.me.wing ? ' · ' + WING[S.me.wing] : ''}</span></div></div>
         <button type="button" class="btn btn--sm btn--line" data-logout>Log out</button>
       </div>
       <nav class="pt-tabs" aria-label="Portal sections"><ul>${tabs.map(function (t) {
@@ -519,17 +526,24 @@
     if (S.recovery) return viewSetPassword('reset');
     if (!S.me) return viewNoProfile();
     if (S.me.must_change_password) return viewSetPassword('forced');
-    if (S.me.status === 'pending') return viewPending();
     if (S.me.status === 'inactive') return viewInactive();
+    if (S.me.status === 'pending' && !dawrahAccess()) return viewPending();
+    if (dawrahOnly()) {
+      var dEl = shell(name === 'profile' ? 'profile' : 'dawrah');
+      try { await (name === 'profile' ? viewProfile(dEl) : viewDawrah(dEl, name === 'dawrah' ? parts.slice(1) : [])); }
+      catch (e) { view(dEl, errorBox(e, true)); }
+      return;
+    }
     var views = {
       '': viewDashboard, dashboard: viewDashboard, quran: viewQuran, library: viewLibrary, classes: viewClasses, profile: viewProfile,
       teach: viewTeach, student: viewStudent, notices: viewNotices,
-      admin: viewAdmin, members: viewMembers, member: viewMember, groups: viewGroups,
+      admin: viewAdmin, members: viewMembers, member: viewMember, groups: viewGroups, dawrah: viewDawrah,
       login: viewDashboard, signup: viewDashboard, forgot: viewDashboard
     };
     var fn = views[name] || viewDashboard;
     if ((fn === viewTeach || fn === viewStudent || fn === viewNotices) && !isStaff()) fn = viewDashboard;
     if ((fn === viewAdmin || fn === viewMembers || fn === viewMember || fn === viewGroups) && !isAdmin()) fn = viewDashboard;
+    if (fn === viewDawrah && !dawrahAccess()) fn = viewDashboard;
     var el = shell(name);
     try { await fn(el, parts.slice(1)); }
     catch (e) { view(el, errorBox(e, true)); }
@@ -540,12 +554,14 @@
     if (!b) return;
     busy(b, true, 'Logging out…');
     try { await S.sb.auth.signOut(); } catch (e) { /* signed out locally anyway */ }
-    S.user = null; S.me = null; S.recovery = false;
+    S.user = null; S.me = null; S.dawrah = null; S.recovery = false;
     go('#/login');
   });
 
   async function loadMe() {
     S.me = await run(S.sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle());
+    // Dawrah access; if the Dawrah part of the database is not set up yet, carry on without it.
+    try { S.dawrah = S.me ? await run(S.sb.rpc('dawrah_me')) : null; } catch (e) { S.dawrah = null; }
     return S.me;
   }
 
@@ -567,7 +583,7 @@
   }
 
   function viewLogin() {
-    authFrame('Log in', 'For students, teachers and the Islamiyyah committee.', html`
+    authFrame('Log in', 'For Islamiyyah and Dawrah students, teachers and admins.', html`
       <form class="form form--plain pt-form" id="f-login" novalidate>
         <div class="field"><label for="li-email">Email</label><input id="li-email" name="email" type="email" autocomplete="email" required></div>
         ${passwordField('li-pw', 'Password', 'password', 'current-password')}
@@ -587,13 +603,13 @@
   }
 
   function viewSignup() {
-    authFrame('Create your account', 'Sign up once. The Islamiyyah committee will approve your account and place you in a class.', html`
+    authFrame('Create your account', 'Sign up once for the Islamiyyah and the Dawrah. Registered for the Dawrah? Use the same email you used on the registration form.', html`
       <form class="form form--plain pt-form" id="f-signup" novalidate>
         <div class="field"><label for="su-name">Full name</label><input id="su-name" name="full_name" autocomplete="name" required minlength="2" maxlength="120"></div>
         <div class="field"><label for="su-email">Email</label><input id="su-email" name="email" type="email" autocomplete="email" required></div>
-        <fieldset class="field pt-choice"><legend>Which class are you joining?</legend>
-          <label><input type="radio" name="wing" value="brothers" required> Brothers</label>
-          <label><input type="radio" name="wing" value="sisters"> Sisters</label>
+        <fieldset class="field pt-choice"><legend>Are you a brother or a sister?</legend>
+          <label><input type="radio" name="wing" value="brothers" required> Brother</label>
+          <label><input type="radio" name="wing" value="sisters"> Sister</label>
         </fieldset>
         <div class="field"><label for="su-phone">WhatsApp number <span class="opt">(optional)</span></label><input id="su-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="0803 000 0000"></div>
         <div class="field--2">
@@ -603,7 +619,7 @@
         ${passwordField('su-pw', 'Password (at least 8 characters)', 'password', 'new-password', 8)}
         ${passwordField('su-pw2', 'Confirm password', 'password2', 'new-password', 8)}
         <label class="pt-consent"><input type="checkbox" name="consent" value="yes" required>
-          <span>I agree that the AMSC Islamiyyah committee may keep my details and learning records to run the programme. Only I, my teachers and the portal admins can see them, and I can ask for my account to be deleted at any time.</span></label>
+          <span>I agree that AMSC may keep my details and learning records to run its programmes. Only I, my teachers and the portal admins can see them, and I can ask for my account to be deleted at any time.</span></label>
         <p class="form-error" role="alert" tabindex="-1" hidden></p>
         <button class="btn btn--blue pt-wide" type="submit">Create account</button>
       </form>
@@ -612,7 +628,7 @@
     onSubmit(f, async function (v) {
       if (!v.full_name || v.full_name.length < 2) throw new Error('Enter your full name.');
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email || '')) throw new Error('Enter a valid email address.');
-      if (v.wing !== 'brothers' && v.wing !== 'sisters') throw new Error('Choose the brothers’ or sisters’ class.');
+      if (v.wing !== 'brothers' && v.wing !== 'sisters') throw new Error('Choose brother or sister.');
       if ((v.password || '').length < 8) throw new Error('Your password must be at least 8 characters.');
       if (v.password !== v.password2) throw new Error('The two passwords do not match.');
       if (v.consent !== 'yes') throw new Error('Tick the box to agree to how your details are used.');
@@ -679,7 +695,8 @@
   function viewPending() {
     var m = S.me;
     authFrame('Your account is waiting for approval', null, html`
-      <p>Jazakallahu khairan for signing up, ${firstName(m.full_name)}. The Islamiyyah committee will approve your account and place you in your Qur’an and Arabic classes, usually at the next weekend class.</p>
+      <p>Jazakallahu khairan for signing up, ${firstName(m.full_name)}. For the Islamiyyah, the committee will approve your account and place you in your classes, usually at the next weekend class.</p>
+      <p>Registered for the Dawrah? You get in as soon as the Dawrah team adds the registrations. Make sure you signed up with the same email you put on the registration form.</p>
       <dl class="pt-dl">
         <div><dt>Name</dt><dd>${m.full_name}</dd></div>
         <div><dt>Email</dt><dd>${m.email}</dd></div>
@@ -705,7 +722,7 @@
   }
   function viewNotReady() {
     root.innerHTML = out(html`<div class="pt-auth"><div class="pt-auth__card">
-      <p class="pt-auth__kicker">Islamiyyah Student Portal</p>
+      <p class="pt-auth__kicker">AMSC Student Portal</p>
       <h2>The portal is opening soon</h2>
       <p class="pt-auth__lede">The Islamiyyah committee is setting up student accounts. In the meantime, classes run every Saturday and Sunday at the AFIT Mosque.</p>
       <a class="btn btn--blue pt-wide" href="islamiyyah.html">About the Islamiyyah programme</a>
@@ -1045,7 +1062,7 @@
 
   // ===================================================================== profile
   function viewProfile(el) {
-    var m = S.me, staff = m.role !== 'student';
+    var m = S.me, staff = m.role !== 'student' && !dawrahOnly(), dOnly = dawrahOnly();
     view(el, html`
       <h2 class="pt-h">My profile</h2>
       <div class="pt-grid">
@@ -1053,13 +1070,13 @@
           <h3 id="p-acc">Account</h3>
           <dl class="pt-dl">
             <div><dt>Email</dt><dd>${m.email}</dd></div>
-            <div><dt>Role</dt><dd>${ROLE[m.role]}</dd></div>
-            <div><dt>Class</dt><dd>${m.wing ? WING[m.wing] : 'Not set'}</dd></div>
-            <div><dt>Qur’an level</dt><dd>${m.quran_level ? QLEVEL[m.quran_level] : 'Not assigned'}</dd></div>
-            <div><dt>Arabic level</dt><dd>${m.arabic_level ? LEVEL[m.arabic_level] : 'Not assigned'}</dd></div>
+            ${dOnly ? html`<div><dt>Programme</dt><dd>${S.dawrah.term.title}</dd></div>` : html`<div><dt>Role</dt><dd>${ROLE[m.role]}</dd></div>`}
+            <div><dt>${dOnly ? 'Brother or sister' : 'Class'}</dt><dd>${m.wing ? (dOnly ? (m.wing === 'sisters' ? 'Sister' : 'Brother') : WING[m.wing]) : 'Not set'}</dd></div>
+            ${dOnly ? '' : html`<div><dt>Qur’an level</dt><dd>${m.quran_level ? QLEVEL[m.quran_level] : 'Not assigned'}</dd></div>
+            <div><dt>Arabic level</dt><dd>${m.arabic_level ? LEVEL[m.arabic_level] : 'Not assigned'}</dd></div>`}
             <div><dt>Member since</dt><dd>${fmtDate(m.created_at)}</dd></div>
           </dl>
-          <p class="pt-meta">To change your class, level or email, ask the Islamiyyah admin.</p>
+          <p class="pt-meta">${dOnly ? 'To change your email, message the Dawrah team.' : 'To change your class, level or email, ask the Islamiyyah admin.'}</p>
         </section>
         <section class="pt-card" aria-labelledby="p-edit">
           <h3 id="p-edit">Your details</h3>
@@ -1087,8 +1104,8 @@
         </section>
         <section class="pt-card" aria-labelledby="p-priv">
           <h3 id="p-priv">${icon('shield')}Your privacy</h3>
-          <p>Your details and records are visible only to you, your teachers and the portal admins. Classmates see your name only. To delete your account and records, message the Islamiyyah admin.</p>
-          ${helpLink()}
+          <p>Your details and records are visible only to you, your teachers and the portal admins. Classmates see your name only. To delete your account and records, message ${dOnly ? 'the Dawrah team' : 'the Islamiyyah admin'}.</p>
+          ${dOnly ? dwHelp() : helpLink()}
         </section>
       </div>`);
     onSubmit($('#f-prof', el), async function (v) {
@@ -1288,6 +1305,736 @@
           toast('Announcement deleted.'); S.focusNext = false; viewNotices(el);
         } catch (e) { toast(friendly(e), 'error'); }
       });
+    });
+  }
+
+  // ===================================================================== Dawrah
+  // Students: the latest class (recording + two questions), all classes, progress, book and exam.
+  // Dawrah admins: follow-up table, classes, exam, registrations and settings.
+  var DW = (DATA && DATA.dawrah) || { coordinators: [] };
+  var LETTERS = 'ABCDEF';
+  var dTerm = function () { return S.dawrah && S.dawrah.term; };
+  var portalUrl = function () { return location.origin + location.pathname; };
+
+  function dawrahNav(cur) {
+    var items = [['', 'Students'], ['classes', 'Classes'], ['exam-setup', 'Exam'], ['settings', 'Settings']];
+    if (S.dawrah.student) items.push(['mine', 'My classes']);
+    return html`<nav class="pt-subnav" aria-label="Dawrah"><ul>${items.map(function (i) {
+      return html`<li><a href="#/dawrah${i[0] ? '/' + i[0] : ''}"${raw(i[0] === cur ? ' aria-current="page"' : '')}>${i[1]}</a></li>`;
+    })}</ul></nav>`;
+  }
+  function dwHead(cur) {
+    var t = dTerm();
+    return html`<h2 class="pt-h">${t.title}</h2>
+      <p class="pt-dw-lede">${[t.schedule, t.venue].filter(Boolean).join(' · ')}</p>${S.dawrah.admin ? dawrahNav(cur) : ''}`;
+  }
+  function dwHelp() {
+    if (!DW.coordinators.length) return '';
+    return html`<p class="pt-dw-help">${icon('whatsapp')}<span>Questions about the Dawrah? WhatsApp ${DW.coordinators.map(function (c, i) {
+      return html`${i ? (i === DW.coordinators.length - 1 ? ' or ' : ', ') : ''}<a href="${c[2]}" target="_blank" rel="noopener">${c[0]}<span class="sr-only"> (opens WhatsApp)</span></a>`;
+    })}.</span></p>`;
+  }
+  function dayLabel(c) { return 'Day ' + c.day_number; }
+
+  async function viewDawrah(el, args) {
+    args = args || [];
+    var sub = args[0] || '', d = S.dawrah;
+    if (d.admin) {
+      if (sub === '') return dwTracker(el);
+      if (sub === 'classes') return dwClasses(el);
+      if (sub === 'new') return dwEditClass(el, null);
+      if (sub === 'edit') return dwEditClass(el, args[1]);
+      if (sub === 'student') return dwStudent(el, decodeURIComponent(args[1] || ''));
+      if (sub === 'exam-setup') return dwExamSetup(el);
+      if (sub === 'settings') return dwSettings(el);
+      if (!d.student && sub === 'class') return dwEditClass(el, args[1]);
+    }
+    if (d.student) {
+      if (sub === 'class') return dwClass(el, args[1]);
+      if (sub === 'exam') return dwExam(el);
+      return dwHome(el);
+    }
+    return dwTracker(el);
+  }
+
+  // ------------------------------------------------------------------ student: home
+  async function dwHome(el) {
+    var mine = token(), t = dTerm();
+    view(el, loading('Loading the Dawrah…'), false);
+    var res = await Promise.all([
+      run(S.sb.rpc('dawrah_my_classes')),
+      run(S.sb.from('dawrah_attempts').select('score,total').eq('user_id', S.me.id).eq('term_id', t.id).is('lesson_id', null)),
+      run(S.sb.from('dawrah_roster').select('written_score').eq('term_id', t.id).eq('email', String(S.me.email).toLowerCase()))
+    ]);
+    if (!mine()) return;
+    var classes = res[0] || [], exam = res[1][0], written = res[2][0] && res[2][0].written_score;
+    var withQ = classes.filter(function (c) { return c.questions > 0; });
+    var done = withQ.filter(function (c) { return c.score != null; });
+    var right = done.reduce(function (a, c) { return a + c.score; }, 0), asked = done.reduce(function (a, c) { return a + c.total; }, 0);
+    var next = classes.find(function (c) { return c.questions > 0 && c.score == null; }) ||
+               classes.find(function (c) { return !c.questions && !c.opened; });
+    var status = function (c) {
+      if (c.questions) return c.score != null ? pill('Done · ' + c.score + '/' + c.total, 'green') : pill('To do', 'yellow');
+      return c.opened ? pill('Listened', 'green') : pill('New', 'blue');
+    };
+    var examLine = exam ? html`<p><strong>${t.exam_title}:</strong> ${exam.score} of ${exam.total}${written != null ? html` · written part: ${Number(written)}` : ''}</p>`
+      : t.exam_open ? html`<a class="btn btn--sm btn--blue" href="#/dawrah/exam">Take the ${t.exam_title.toLowerCase()}</a>`
+      : html`<p class="pt-meta">The ${t.exam_title.toLowerCase()} opens at the end of the Dawrah.</p>`;
+    view(el, html`
+      ${dwHead('mine')}
+      <section class="pt-card pt-card--blue" aria-labelledby="dw-next">
+        <h3 id="dw-next">${icon('clock')}${next ? 'Your next step' : 'You are up to date'}</h3>
+        ${next ? html`<p class="pt-next__when">${dayLabel(next)} · ${fmtDate(next.lesson_date, false)}</p>
+            <p class="pt-next__what">${next.title}</p>
+            <p class="pt-next__where">${next.questions ? 'Listen to the class, then answer ' + plural(next.questions, 'short question') + '.' : 'Listen to the class.'}</p>
+            <a class="pt-cardlink" href="#/dawrah/class/${next.id}">Open the class</a>`
+          : classes.length ? html`<p class="pt-next__where">You have done every class so far. The next class appears here after it holds.</p>`
+          : html`<p class="pt-next__what">The first class is coming soon.</p><p class="pt-next__where">After each class, its recording and two short questions appear here.</p>`}
+      </section>
+      <div class="pt-grid">
+        <section class="pt-card" aria-labelledby="dw-prog">
+          <h3 id="dw-prog">${icon('star')}Your progress</h3>
+          <div class="pt-hero"><span class="pt-hero__v">${done.length}</span><span class="pt-hero__s">of ${plural(withQ.length, 'class', 'classes')} done</span></div>
+          ${bar(withQ.length ? done.length / withQ.length : 0, 'Dawrah classes done')}
+          <p class="pt-meta">${asked ? 'Questions right: ' + right + ' of ' + asked : 'Your scores appear here after you answer.'}</p>
+          ${examLine}
+        </section>
+        <section class="pt-card" aria-labelledby="dw-book">
+          <h3 id="dw-book">${icon('book')}The book</h3>
+          ${t.book_url ? html`<p>Download the book we are studying, to read along and revise.</p>
+              <a class="btn btn--sm btn--blue" href="${/^assets\//.test(t.book_url) ? t.book_url : safeUrl(t.book_url)}" target="_blank" rel="noopener">${icon('download')}Download the book (PDF)</a>`
+            : html`<p>The book (PDF) is coming soon, in sha Allah.</p>`}
+        </section>
+      </div>
+      <section class="pt-card" aria-labelledby="dw-all">
+        <h3 id="dw-all">${icon('calendar')}Classes</h3>
+        ${classes.length ? html`<ul class="pt-dw-list">${classes.map(function (c) {
+          return html`<li><a href="#/dawrah/class/${c.id}"><span class="pt-dw-day">${c.day_number}</span>
+            <span class="pt-dw-t"><strong>${c.title}</strong><span class="pt-meta">${fmtDate(c.lesson_date, false)}</span></span>${status(c)}</a></li>`;
+        })}</ul>` : empty('No classes yet', 'Each class appears here on the day it holds.')}
+      </section>
+      ${dwHelp()}`);
+  }
+
+  // ------------------------------------------------------------------ student: one class
+  function dwPlayer(url, title) {
+    if (!url) return html`<p class="pt-meta">The recording will be added soon.</p>`;
+    var m, link = html`<p><a href="${safeUrl(url)}" target="_blank" rel="noopener">Not playing? Open the recording in a new tab<span class="sr-only"> (opens in a new tab)</span></a></p>`;
+    if ((m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{10,})/)))
+      return html`<div class="pt-dw-player"><iframe src="https://drive.google.com/file/d/${m[1]}/preview" title="Recording: ${title}" allow="autoplay" loading="lazy"></iframe></div>${link}`;
+    if ((m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([\w-]{11})/)))
+      return html`<div class="pt-dw-player pt-dw-player--video"><iframe src="https://www.youtube-nocookie.com/embed/${m[1]}" title="Recording: ${title}" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>${link}`;
+    if (/\.(mp3|m4a|aac|ogg|oga|opus|wav)(\?|#|$)/i.test(url))
+      return html`<audio class="pt-dw-audio" controls preload="none" src="${safeUrl(url)}"></audio>${link}`;
+    return html`<a class="btn btn--blue" href="${safeUrl(url)}" target="_blank" rel="noopener">${icon('external')}Listen to the recording<span class="sr-only"> (opens in a new tab)</span></a>`;
+  }
+  function dwQuiz(qs, label, note) {
+    return html`<form class="pt-dw-quiz" id="dw-quiz" novalidate>
+      ${qs.map(function (q, n) {
+        return html`<fieldset class="pt-dw-q"><legend><span class="pt-dw-qn">Question ${n + 1}${qs.length > 1 ? ' of ' + qs.length : ''}</span>${q.prompt}</legend>
+          ${q.options.map(function (o, k) {
+            return html`<label class="pt-dw-opt"><input type="radio" name="${q.id}" value="${k}"><span><b>${LETTERS[k]}</b>${o}</span></label>`;
+          })}</fieldset>`;
+      })}
+      <p class="pt-meta">${note}</p>
+      <p class="form-error" role="alert" tabindex="-1" hidden></p>
+      <button class="btn btn--blue" type="submit">${label}</button>
+    </form>`;
+  }
+  function dwAnswers(form, qs) {
+    var a = {}, missing = 0;
+    qs.forEach(function (q) {
+      var c = $('input[name="' + q.id + '"]:checked', form);
+      if (c) a[q.id] = Number(c.value); else missing++;
+    });
+    return { answers: a, missing: missing };
+  }
+  function dwReview(list) {
+    var score = list.filter(function (q) { return q.chosen === q.correct; }).length;
+    return html`<p class="pt-dw-score${raw(score === list.length ? ' is-full' : '')}" tabindex="-1">${icon(score === list.length ? 'check' : 'star')}<span>You got <strong>${score} of ${list.length}</strong> right.${score === list.length ? ' Masha Allah!' : ' The right answers are marked below.'}</span></p>
+      ${list.map(function (q, n) {
+        return html`<div class="pt-dw-q"><p class="pt-dw-qp"><span class="pt-dw-qn">Question ${n + 1}</span>${q.prompt}</p>
+          <ul class="pt-dw-ans">${q.options.map(function (o, k) {
+            var ok = k === q.correct, me = k === q.chosen;
+            return html`<li class="${ok ? 'is-right' : me ? 'is-wrong' : ''}"><b>${LETTERS[k]}</b><span>${o}${ok ? html` <span class="pt-dw-tag">Right answer</span>` : ''}${me ? html` <span class="pt-dw-tag pt-dw-tag--you">Your answer</span>` : ''}</span></li>`;
+          })}</ul></div>`;
+      })}`;
+  }
+
+  async function dwClass(el, id) {
+    var mine = token();
+    view(el, loading('Opening the class…'), false);
+    var classes = await run(S.sb.rpc('dawrah_my_classes'));
+    if (!mine()) return;
+    var i = classes.findIndex(function (c) { return c.id === id; });
+    var back = html`<p class="pt-back"><a href="#/dawrah${S.dawrah.admin ? '/mine' : ''}">← All classes</a></p>`;
+    if (i < 0) return view(el, html`${back}${empty('This class is not open yet', 'Classes appear on the day they hold.')}`);
+    var c = classes[i], prev = classes[i - 1], next = classes[i + 1], qs = [], review = null;
+    if (c.questions) {
+      if (c.score != null) review = await run(S.sb.rpc('dawrah_review', { lesson: id }));
+      else qs = await run(S.sb.rpc('dawrah_questions_for', { lesson: id }));
+    }
+    if (!mine()) return;
+    S.sb.rpc('dawrah_opened', { lesson: id }).then(function () {}, function () {});
+    view(el, html`${back}
+      <h2 class="pt-h">${dayLabel(c)}: ${c.title}</h2>
+      <p class="pt-dw-lede">${fmtDate(c.lesson_date)}</p>
+      <section class="pt-card" aria-labelledby="dw-l">
+        <h3 id="dw-l"><span class="pt-dw-step" aria-hidden="true">1</span>Listen to the class</h3>
+        ${dwPlayer(c.audio_url, c.title)}
+        ${c.notes ? html`<p class="pt-dw-notes">${c.notes}</p>` : ''}
+      </section>
+      ${c.questions ? html`<section class="pt-card" aria-labelledby="dw-a">
+        <h3 id="dw-a"><span class="pt-dw-step" aria-hidden="true">2</span>Answer the questions</h3>
+        <div id="dw-qbox">${review ? dwReview(review) : dwQuiz(qs, 'Submit my answers', 'You have one try. After you submit, you will see the right answers.')}</div>
+      </section>` : ''}
+      <nav class="pt-dw-pager" aria-label="Other classes">
+        ${prev ? html`<a href="#/dawrah/class/${prev.id}">← ${dayLabel(prev)}</a>` : html`<span></span>`}
+        ${next ? html`<a href="#/dawrah/class/${next.id}">${dayLabel(next)} →</a>` : ''}
+      </nav>`);
+    onSubmit($('#dw-quiz', el), async function (v, form) {
+      var a = dwAnswers(form, qs);
+      if (a.missing) throw new Error(a.missing === qs.length ? 'Choose an answer for each question.' : 'Answer every question before you submit.');
+      var r = await run(S.sb.rpc('dawrah_submit', { lesson: id, answers: a.answers }));
+      var byId = {};
+      (r.results || []).forEach(function (x) { byId[x.id] = x; });
+      var box = $('#dw-qbox', el);
+      box.innerHTML = out(dwReview(qs.map(function (q) { return Object.assign({}, q, byId[q.id] || {}); })));
+      var s = $('.pt-dw-score', box); if (s) s.focus();
+      toast('Your answers are saved.');
+    });
+  }
+
+  // ------------------------------------------------------------------ student: exam
+  async function dwExam(el) {
+    var mine = token();
+    view(el, loading('Opening the exam…'), false);
+    S.dawrah = await run(S.sb.rpc('dawrah_me'));
+    var t = dTerm();
+    var att = await run(S.sb.from('dawrah_attempts').select('score,total').eq('user_id', S.me.id).eq('term_id', t.id).is('lesson_id', null));
+    var qs = !att.length && t.exam_open ? await run(S.sb.rpc('dawrah_questions_for', { lesson: null })) : [];
+    if (!mine()) return;
+    var back = html`<p class="pt-back"><a href="#/dawrah${S.dawrah.admin ? '/mine' : ''}">← Back to the Dawrah</a></p>`;
+    var body = att.length ? html`<section class="pt-card"><p class="pt-dw-score is-full">${icon('check')}<span>You have taken the exam. Your score: <strong>${att[0].score} of ${att[0].total}</strong>.</span></p><p class="pt-meta">If there is a written part, its score is added by the Dawrah team.</p></section>`
+      : !t.exam_open ? empty('The exam is not open yet', 'It opens at the end of the Dawrah. You will be told when.')
+      : !qs.length ? empty('The exam questions are not ready yet', 'Check back soon.')
+      : html`<section class="pt-card">${dwQuiz(qs, 'Submit the exam', 'You have one try, and you cannot change your answers after you submit. Your score shows straight away.')}</section>`;
+    view(el, html`${back}<h2 class="pt-h">${t.exam_title}</h2>${body}`);
+    onSubmit($('#dw-quiz', el), async function (v, form) {
+      var a = dwAnswers(form, qs), btn = $('button[type=submit]', form);
+      if (form.dataset.ready !== '1') {
+        form.dataset.ready = '1';
+        setTimeout(function () { btn.textContent = 'Yes, submit the exam'; }, 0);
+        throw new Error(a.missing ? 'You have not answered ' + plural(a.missing, 'question') + '. Press the button again to submit anyway.' : 'Check your answers, then press the button again to submit.');
+      }
+      var r = await run(S.sb.rpc('dawrah_submit', { lesson: null, answers: a.answers }));
+      toast('Your exam is submitted.');
+      view(el, html`${back}<h2 class="pt-h">${t.exam_title}</h2><section class="pt-card"><p class="pt-dw-score is-full" tabindex="-1">${icon('check')}<span>Your score: <strong>${r.score} of ${r.total}</strong>. Jazakallahu khairan.</span></p></section>`);
+    });
+  }
+
+  // ------------------------------------------------------------------ admin: follow-up table
+  function dwFollowText(r, missed) {
+    var hi = 'Assalamu alaykum ' + (firstName(r.full_name) || '') + ', this is the AMSC Dawrah team. ';
+    if (!r.signed_up) return hi + 'You registered for ' + dTerm().title + '. Please create your login on the Student Portal with the same email you registered with (' + r.email + '): ' + portalUrl() + '#/signup';
+    if (missed) return hi + 'We noticed ' + (missed === 1 ? 'one class has' : missed + ' classes have') + ' not been done on the portal yet. The recordings and questions are here: ' + portalUrl() + '#/dawrah. May Allah make it easy for you.';
+    return hi;
+  }
+  async function dwTracker(el) {
+    var mine = token(), t = dTerm();
+    view(el, loading('Loading Dawrah students…'), false);
+    var res = await Promise.all([run(S.sb.rpc('dawrah_tracker')), run(S.sb.rpc('dawrah_my_classes'))]);
+    if (!mine()) return;
+    var rows = res[0] || [], today = todayISO();
+    var due = (res[1] || []).filter(function (c) { return c.questions > 0 && c.lesson_date <= today; }).length;
+    rows.forEach(function (r) {
+      r.missed = r.signed_up ? Math.max(0, due - r.classes_done) : due;
+      r.state = !r.signed_up ? 'nologin' : r.missed >= 2 ? 'behind' : 'ok';
+      r.follow = (!r.signed_up && due > 0) || r.missed >= 2;
+    });
+    var n = function (f) { return rows.filter(f).length; };
+    view(el, html`${dwHead('')}
+      <div class="pt-stats">
+        <div class="pt-stat"><span class="pt-stat__k">Registered</span><span class="pt-stat__v">${rows.length}</span></div>
+        <div class="pt-stat"><span class="pt-stat__k">Have logged in</span><span class="pt-stat__v">${n(function (r) { return r.signed_up; })}</span></div>
+        <div class="pt-stat"><span class="pt-stat__k">Up to date</span><span class="pt-stat__v">${n(function (r) { return r.signed_up && !r.missed; })}</span></div>
+        <div class="pt-stat"><span class="pt-stat__k">Need follow-up</span><span class="pt-stat__v">${n(function (r) { return r.follow; })}</span></div>
+      </div>
+      ${rows.length ? html`<div class="pt-filters pt-filters--2" role="search">
+          <div class="field"><label for="dw-q">Search</label><input id="dw-q" type="search" placeholder="Name, email or number"></div>
+          <div class="field"><label for="dw-f">Show</label><select id="dw-f"><option value="">Everyone</option><option value="follow">Need follow-up</option><option value="nologin">No login yet</option><option value="ok">Up to date</option></select></div>
+        </div>
+        <div class="pt-headrow"><p class="pt-meta" id="dw-count" aria-live="polite"></p><button type="button" class="pt-textbtn" id="dw-csv">${icon('download')}Download as a spreadsheet (CSV)</button></div>
+        <div id="dw-list"></div>`
+      : html`<section class="pt-card">${empty('No students yet', 'Copy the registrations from the Google Sheet and paste them in Settings.', html`<a class="btn btn--sm btn--blue" href="#/dawrah/settings">Add registered students</a>`)}</section>`}
+      <p class="pt-meta">${due ? plural(due, 'class', 'classes') + ' with questions so far.' : 'No classes with questions yet.'} “Need follow-up” means no login yet, or 2 or more classes not done.</p>`);
+    if (!rows.length) return;
+    var q = $('#dw-q', el), f = $('#dw-f', el);
+    function shown() {
+      var s = q.value.trim().toLowerCase();
+      return rows.filter(function (r) {
+        if (f.value === 'follow' && !r.follow) return false;
+        if (f.value && f.value !== 'follow' && r.state !== f.value) return false;
+        return !s || ((r.full_name || '') + ' ' + r.email + ' ' + (r.phone || '')).toLowerCase().indexOf(s) >= 0;
+      });
+    }
+    function draw() {
+      var list = shown();
+      $('#dw-count', el).textContent = 'Showing ' + list.length + ' of ' + plural(rows.length, 'student') + '.';
+      $('#dw-list', el).innerHTML = out(list.length ? html`<table class="pt-table"><caption class="sr-only">Dawrah students</caption>
+        <thead><tr><th scope="col">Student</th><th scope="col">Classes done</th><th scope="col">Questions right</th><th scope="col">Exam</th><th scope="col">Last active</th><th scope="col"><span class="sr-only">Follow up</span></th></tr></thead>
+        <tbody>${list.map(function (r) {
+          var wa = waLink(r.phone, dwFollowText(r, r.missed));
+          return html`<tr><td data-label="Student"><span class="pt-td"><a href="#/dawrah/student/${encodeURIComponent(r.email)}"><strong>${r.full_name || r.email}</strong></a>
+              <span class="pt-meta">${r.email}</span>${r.state === 'nologin' ? pill('No login yet', 'grey') : r.follow ? pill('Follow up', 'yellow') : ''}</span></td>
+            <td data-label="Classes done"><span class="pt-td">${r.signed_up ? r.classes_done + ' of ' + due : '—'}</span></td>
+            <td data-label="Questions right"><span class="pt-td">${r.quiz_total ? r.quiz_score + ' of ' + r.quiz_total : '—'}</span></td>
+            <td data-label="Exam"><span class="pt-td">${r.exam_total != null ? r.exam_score + ' of ' + r.exam_total : '—'}</span></td>
+            <td data-label="Last active"><span class="pt-td">${r.last_active ? fmtDate(r.last_active, false) : '—'}</span></td>
+            <td><span class="pt-td">${wa ? html`<a class="btn btn--sm btn--line" href="${wa}" target="_blank" rel="noopener">${icon('whatsapp')}WhatsApp<span class="sr-only"> ${r.full_name || r.email}</span></a>` : ''}</span></td></tr>`;
+        })}</tbody></table>` : empty('Nobody matches', 'Change the search or the filter.'));
+    }
+    [q, f].forEach(function (c) { c.addEventListener('input', draw); c.addEventListener('change', draw); });
+    draw();
+    $('#dw-csv', el).addEventListener('click', function () {
+      var cell = function (v) { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+      var lines = [['Name', 'Email', 'WhatsApp', 'Logged in', 'Classes done', 'Classes so far', 'Questions right', 'Questions answered', 'Exam score', 'Exam out of', 'Written score', 'Last active']]
+        .concat(shown().map(function (r) {
+          return [r.full_name, r.email, r.phone, r.signed_up ? 'Yes' : 'No', r.classes_done, due, r.quiz_score, r.quiz_total, r.exam_score, r.exam_total, r.written_score == null ? '' : Number(r.written_score), r.last_active ? String(r.last_active).slice(0, 10) : ''];
+        }));
+      var blob = new Blob(['﻿' + lines.map(function (l) { return l.map(cell).join(','); }).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'dawrah-students-' + todayISO() + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    });
+  }
+
+  // ------------------------------------------------------------------ admin: one student
+  async function dwStudent(el, email) {
+    var mine = token(), t = dTerm();
+    view(el, loading('Loading the student…'), false);
+    var res = await Promise.all([run(S.sb.rpc('dawrah_tracker')), run(S.sb.rpc('dawrah_my_classes'))]);
+    if (!mine()) return;
+    var r = (res[0] || []).find(function (x) { return x.email === email; }), classes = res[1] || [];
+    var back = html`<p class="pt-back"><a href="#/dawrah">← All students</a></p>`;
+    if (!r) return view(el, html`${back}${empty('Student not found', 'They may have been removed from this Dawrah.')}`);
+    var att = [], seen = [];
+    if (r.user_id) {
+      var more = await Promise.all([
+        run(S.sb.from('dawrah_attempts').select('id,lesson_id,score,total,submitted_at').eq('user_id', r.user_id).eq('term_id', t.id)),
+        run(S.sb.from('dawrah_views').select('lesson_id,last_at').eq('user_id', r.user_id))
+      ]);
+      if (!mine()) return;
+      att = more[0]; seen = more[1];
+    }
+    var attFor = function (lid) { return att.find(function (a) { return a.lesson_id === lid; }); };
+    var exam = attFor(null);
+    var wa = waLink(r.phone, dwFollowText(r, 0));
+    view(el, html`${back}
+      <h2 class="pt-h">${r.full_name || r.email}</h2>
+      <p class="pt-dw-lede">${r.email}${r.phone ? ' · ' + r.phone : ''} ${r.signed_up ? '' : pill('No login yet', 'grey')}</p>
+      <div class="pt-actions pt-dw-gap">
+        ${wa ? html`<a class="btn btn--sm btn--blue" href="${wa}" target="_blank" rel="noopener">${icon('whatsapp')}WhatsApp</a>` : ''}
+        <a class="btn btn--sm btn--line" href="mailto:${r.email}">Email</a>
+      </div>
+      <div class="pt-grid">
+        <section class="pt-card" aria-labelledby="ds-sc">
+          <h3 id="ds-sc">${icon('star')}Scores</h3>
+          <dl class="pt-dl">
+            <div><dt>Classes done</dt><dd>${r.classes_done}</dd></div>
+            <div><dt>Questions right</dt><dd>${r.quiz_total ? r.quiz_score + ' of ' + r.quiz_total : '—'}</dd></div>
+            <div><dt>${t.exam_title}</dt><dd>${exam ? exam.score + ' of ' + exam.total : 'Not taken'}${exam ? html` <button type="button" class="pt-textbtn" data-reset="${exam.id}">Let them retake it</button>` : ''}</dd></div>
+          </dl>
+          <form class="form form--plain pt-form" id="ds-w" novalidate>
+            <div class="field"><label for="ds-ws">Written exam score <span class="opt">(out of 100, optional)</span></label>
+              <input id="ds-ws" name="w" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="${r.written_score == null ? '' : Number(r.written_score)}"></div>
+            <p class="form-error" role="alert" tabindex="-1" hidden></p>
+            <button class="btn btn--sm btn--blue" type="submit">Save score</button>
+          </form>
+        </section>
+        <section class="pt-card" aria-labelledby="ds-cl">
+          <h3 id="ds-cl">${icon('calendar')}Classes</h3>
+          ${classes.length ? html`<ul class="pt-rows">${classes.map(function (c) {
+            var a = attFor(c.id), v = seen.find(function (x) { return x.lesson_id === c.id; });
+            return html`<li><div><strong>${dayLabel(c)}</strong> <span class="pt-meta">${c.title}</span></div>
+              <div class="pt-dw-rowend">${a ? pill(a.score + '/' + a.total, 'green') : c.questions ? pill(v ? 'Opened' : 'Not done', v ? 'blue' : 'grey') : pill(v ? 'Listened' : 'Not opened', v ? 'green' : 'grey')}
+              ${a ? html`<button type="button" class="pt-textbtn" data-reset="${a.id}">Reset<span class="sr-only"> ${dayLabel(c)}</span></button>` : ''}</div></li>`;
+          })}</ul>` : empty('No classes yet', '')}
+        </section>
+      </div>
+      <section class="pt-card pt-danger" aria-labelledby="ds-rm">
+        <h3 id="ds-rm">Remove from this Dawrah</h3>
+        <p>They will no longer see the Dawrah. Their portal account stays.</p>
+        <button type="button" class="btn btn--sm pt-btn-danger" id="ds-remove">Remove ${firstName(r.full_name) || 'student'}</button>
+      </section>`);
+    onSubmit($('#ds-w', el), async function (v) {
+      var w = v.w === '' ? null : Number(v.w);
+      if (w !== null && !(w >= 0 && w <= 100)) throw new Error('Enter a score from 0 to 100, or leave it empty.');
+      var rows = await run(S.sb.from('dawrah_roster').update({ written_score: w }).eq('term_id', t.id).eq('email', r.email).select('email'));
+      if (!rows.length) throw new Error('That score could not be saved.');
+      toast('Written score saved.');
+    });
+    $$('[data-reset]', el).forEach(function (b) {
+      b.addEventListener('click', async function () {
+        if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Press again to reset'; return; }
+        try {
+          var rows = await run(S.sb.from('dawrah_attempts').delete().eq('id', b.dataset.reset).select('id'));
+          if (!rows.length) throw new Error('That could not be reset.');
+          toast('Reset. They can answer again.'); S.focusNext = false; dwStudent(el, email);
+        } catch (e) { toast(friendly(e), 'error'); }
+      });
+    });
+    var rm = $('#ds-remove', el);
+    rm.addEventListener('click', async function () {
+      if (rm.dataset.confirm !== '1') { rm.dataset.confirm = '1'; rm.textContent = 'Press again to remove'; return; }
+      busy(rm, true, 'Removing…');
+      try {
+        await run(S.sb.from('dawrah_roster').delete().eq('term_id', t.id).eq('email', r.email));
+        toast('Removed from the Dawrah.'); go('#/dawrah');
+      } catch (e) { busy(rm, false); toast(friendly(e), 'error'); }
+    });
+  }
+
+  // ------------------------------------------------------------------ admin: classes
+  async function dwClasses(el) {
+    var mine = token(), t = dTerm();
+    view(el, loading('Loading classes…'), false);
+    var res = await Promise.all([run(S.sb.rpc('dawrah_my_classes')), run(S.sb.from('dawrah_attempts').select('lesson_id').eq('term_id', t.id))]);
+    if (!mine()) return;
+    var classes = res[0] || [], answered = {}, today = todayISO();
+    res[1].forEach(function (a) { if (a.lesson_id) answered[a.lesson_id] = (answered[a.lesson_id] || 0) + 1; });
+    view(el, html`${dwHead('classes')}
+      <section class="pt-card" aria-labelledby="dc-h">
+        <div class="pt-headrow"><h3 id="dc-h">${icon('calendar')}Classes</h3><a class="btn btn--sm btn--blue" href="#/dawrah/new">${icon('plus')}Add a class</a></div>
+        ${classes.length ? html`<ul class="pt-dw-list">${classes.slice().reverse().map(function (c) {
+          return html`<li><a href="#/dawrah/edit/${c.id}"><span class="pt-dw-day">${c.day_number}</span>
+            <span class="pt-dw-t"><strong>${c.title}</strong><span class="pt-meta">${fmtDate(c.lesson_date, false)} · ${plural(answered[c.id] || 0, 'student')} answered</span></span>
+            <span class="pt-dw-pills">${c.lesson_date > today ? pill('Shows ' + fmtDate(c.lesson_date, false), 'grey') : ''}${!c.audio_url ? pill('No recording', 'yellow') : ''}${!c.questions ? pill('No questions', 'yellow') : ''}</span></a></li>`;
+        })}</ul>` : empty('No classes yet', 'After each class, add its recording link and two questions here. Students see it straight away.')}
+      </section>
+      <section class="pt-card" aria-labelledby="dc-how"><h3 id="dc-how">How to add a recording</h3>
+        <ol class="pt-steps">
+          <li>Upload the audio to Google Drive.</li>
+          <li>Right-click it (or tap the three dots), choose <strong>Share</strong>, and set General access to <strong>Anyone with the link</strong>.</li>
+          <li>Press <strong>Copy link</strong>, then paste it in the class form here. YouTube links work too.</li>
+        </ol>
+      </section>`);
+  }
+
+  function dwQuestionFields(n, q, locked, label) {
+    var o = (q && q.options) || [], pre = 'q' + n;
+    if (locked) return html`<div class="pt-dw-q"><p class="pt-dw-qp"><span class="pt-dw-qn">Question ${n}</span>${q.prompt}</p>
+      <ul class="pt-dw-ans">${o.map(function (x, k) { return html`<li class="${k === q.correct ? 'is-right' : ''}"><b>${LETTERS[k]}</b><span>${x}${k === q.correct ? html` <span class="pt-dw-tag">Right answer</span>` : ''}</span></li>`; })}</ul></div>`;
+    return html`<fieldset class="pt-dw-qedit"><legend>${label || 'Question ' + n}${!label && n > 1 ? html` <span class="opt">(optional)</span>` : ''}</legend>
+      <div class="field"><label for="${pre}">Question</label><textarea id="${pre}" name="${pre}" rows="2" maxlength="500">${q ? q.prompt : ''}</textarea></div>
+      <p class="pt-meta" id="${pre}-h">Type the answers, then tick the right one. C and D are optional.</p>
+      ${[0, 1, 2, 3].map(function (k) {
+        return html`<div class="pt-dw-optedit"><label class="pt-dw-right"><input type="radio" name="${pre}c" value="${k}"${raw(q && q.correct === k ? ' checked' : '')} aria-describedby="${pre}-h"><span class="sr-only">Answer ${LETTERS[k]} is the right one</span></label>
+          <label for="${pre}o${k}" class="pt-dw-letter"><span class="sr-only">Answer </span>${LETTERS[k]}</label><input id="${pre}o${k}" name="${pre}o${k}" maxlength="200" value="${o[k] || ''}"></div>`;
+      })}
+    </fieldset>`;
+  }
+  function dwReadQuestion(v, n) {
+    var pre = 'q' + n, prompt = v[pre] || '', opts2 = [], correct = -1;
+    [0, 1, 2, 3].forEach(function (k) {
+      var x = v[pre + 'o' + k] || '';
+      if (x) { if (String(k) === v[pre + 'c']) correct = opts2.length; opts2.push(x); }
+    });
+    if (!prompt && !opts2.length) return null;
+    if (prompt.length < 2) throw new Error('Type question ' + n + '.');
+    if (opts2.length < 2) throw new Error('Question ' + n + ' needs at least two answers.');
+    if (correct < 0) throw new Error('Tick the right answer for question ' + n + '.');
+    return { prompt: prompt, options: opts2, correct: correct };
+  }
+
+  async function dwEditClass(el, id) {
+    var mine = token(), t = dTerm();
+    view(el, loading('Loading…'), false);
+    var classes = await run(S.sb.rpc('dawrah_my_classes'));
+    var c = id ? classes.find(function (x) { return x.id === id; }) : null, qs = [], answered = 0;
+    if (c) {
+      var more = await Promise.all([
+        run(S.sb.from('dawrah_questions').select('*').eq('lesson_id', id).order('position')),
+        count(S.sb.from('dawrah_attempts').select('id', { count: 'exact', head: true }).eq('lesson_id', id))
+      ]);
+      qs = more[0]; answered = more[1];
+    }
+    if (!mine()) return;
+    var back = html`<p class="pt-back"><a href="#/dawrah/classes">← All classes</a></p>`;
+    if (id && !c) return view(el, html`${back}${empty('Class not found', 'It may have been deleted.')}`);
+    var locked = answered > 0;
+    var nextDay = classes.reduce(function (m, x) { return Math.max(m, x.day_number); }, 0) + 1;
+    view(el, html`${back}
+      <h2 class="pt-h">${c ? dayLabel(c) + ': ' + c.title : 'Add a class'}</h2>
+      <form class="form form--plain pt-form" id="dw-cf" novalidate>
+        <section class="pt-card">
+          <h3>The class</h3>
+          <div class="field--2">
+            <div class="field"><label for="cf-day">Day number</label><input id="cf-day" name="day" type="number" min="1" max="300" required value="${c ? c.day_number : nextDay}"></div>
+            <div class="field"><label for="cf-date">Date</label><input id="cf-date" name="date" type="date" required value="${c ? c.lesson_date : todayISO()}" aria-describedby="cf-date-h"></div>
+          </div>
+          <p class="pt-meta" id="cf-date-h">Students see the class from this date.</p>
+          <div class="field"><label for="cf-title">What was taught</label><input id="cf-title" name="title" required maxlength="160" value="${c ? c.title : ''}" placeholder="For example: Hadith 1, Actions are by intentions"></div>
+          <div class="field"><label for="cf-audio">Recording link <span class="opt">(Google Drive or YouTube)</span></label><input id="cf-audio" name="audio" type="url" inputmode="url" maxlength="500" value="${c && c.audio_url ? c.audio_url : ''}" placeholder="https://drive.google.com/file/d/…"></div>
+          <div class="field"><label for="cf-notes">Short note for students <span class="opt">(optional)</span></label><textarea id="cf-notes" name="notes" rows="2" maxlength="600">${c && c.notes ? c.notes : ''}</textarea></div>
+        </section>
+        <section class="pt-card">
+          <h3>Two short questions</h3>
+          ${locked ? html`<p class="pt-meta">${plural(answered, 'student has', 'students have')} answered, so these questions are locked to keep scores fair.</p>` : html`<p class="pt-meta">Students answer once and see the right answers after.</p>`}
+          ${locked ? qs.map(function (q, i) { return dwQuestionFields(i + 1, q, true); }) : [dwQuestionFields(1, qs[0], false), dwQuestionFields(2, qs[1], false)]}
+        </section>
+        <p class="form-error" role="alert" tabindex="-1" hidden></p>
+        <button class="btn btn--blue" type="submit">${c ? 'Save changes' : 'Add the class'}</button>
+      </form>
+      ${c ? html`<details class="pt-details pt-dw-gap"><summary>Delete this class</summary>
+        <p>This also deletes its questions and every student’s answers to them.</p>
+        <button type="button" class="btn btn--sm pt-btn-danger" id="cf-del">Delete ${dayLabel(c)}</button></details>` : ''}`);
+    onSubmit($('#dw-cf', el), async function (v) {
+      var day = parseInt(v.day, 10);
+      if (!(day >= 1 && day <= 300)) throw new Error('Enter the day number (1, 2, 3…).');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date || '')) throw new Error('Choose the date of the class.');
+      if ((v.title || '').length < 2) throw new Error('Type what was taught.');
+      if (v.audio && !/^https?:\/\//i.test(v.audio)) throw new Error('The recording link must start with https://');
+      var newQs = [];
+      if (!locked) [1, 2].forEach(function (n) { var q = dwReadQuestion(v, n); if (q) newQs.push(q); });
+      var row = { term_id: t.id, day_number: day, lesson_date: v.date, title: v.title, audio_url: v.audio || null, notes: v.notes || null };
+      var saved = c ? await run(S.sb.from('dawrah_lessons').update(row).eq('id', c.id).select('id'))
+                    : await run(S.sb.from('dawrah_lessons').insert(row).select('id'));
+      if (!saved.length) throw new Error('The class could not be saved.');
+      var lid = saved[0].id;
+      if (!locked) {
+        if (c) await run(S.sb.from('dawrah_questions').delete().eq('lesson_id', lid));
+        if (newQs.length) await run(S.sb.from('dawrah_questions').insert(newQs.map(function (q, i) {
+          return { term_id: t.id, lesson_id: lid, position: i + 1, prompt: q.prompt, options: q.options, correct: q.correct };
+        })));
+      }
+      toast(c ? 'Class saved.' : 'Class added. Students can see it' + (v.date > todayISO() ? ' from ' + fmtDate(v.date, false) + '.' : ' now.'));
+      go('#/dawrah/classes');
+    });
+    var del = $('#cf-del', el);
+    if (del) del.addEventListener('click', async function () {
+      if (del.dataset.confirm !== '1') { del.dataset.confirm = '1'; del.textContent = 'Press again to delete'; return; }
+      busy(del, true, 'Deleting…');
+      try {
+        var rows = await run(S.sb.from('dawrah_lessons').delete().eq('id', c.id).select('id'));
+        if (!rows.length) throw new Error('That class could not be deleted.');
+        toast('Class deleted.'); go('#/dawrah/classes');
+      } catch (e) { busy(del, false); toast(friendly(e), 'error'); }
+    });
+  }
+
+  // ------------------------------------------------------------------ admin: exam
+  async function dwExamSetup(el) {
+    var mine = token(), t0 = dTerm();
+    view(el, loading('Loading the exam…'), false);
+    var res = await Promise.all([
+      run(S.sb.from('dawrah_terms').select('*').eq('id', t0.id)),
+      run(S.sb.from('dawrah_questions').select('*').eq('term_id', t0.id).is('lesson_id', null).order('position')),
+      count(S.sb.from('dawrah_attempts').select('id', { count: 'exact', head: true }).eq('term_id', t0.id).is('lesson_id', null))
+    ]);
+    if (!mine()) return;
+    var t = res[0][0] || t0, qs = res[1], taken = res[2];
+    S.dawrah.term = t;
+    view(el, html`${dwHead('exam-setup')}
+      <section class="pt-card" aria-labelledby="de-st">
+        <div class="pt-headrow"><h3 id="de-st">${icon('shield')}${t.exam_title}</h3>${t.exam_open ? pill('Open', 'green') : pill('Closed', 'grey')}</div>
+        <p>${t.exam_open ? 'Students can take the exam now. Each student has one try, and it is marked straight away.' : 'Students cannot see the exam until you open it. Open it at the end of the Dawrah.'}</p>
+        <p class="pt-meta">${plural(qs.length, 'question')} · ${plural(taken, 'student has', 'students have')} taken it. Scores show on the Students page.</p>
+        <button type="button" class="btn btn--sm ${t.exam_open ? 'btn--line' : 'btn--blue'}" id="de-toggle"${raw(!t.exam_open && !qs.length ? ' disabled' : '')}>${t.exam_open ? 'Close the exam' : 'Open the exam'}</button>
+        ${!t.exam_open && !qs.length ? html`<p class="pt-meta">Add questions first.</p>` : ''}
+      </section>
+      <section class="pt-card" aria-labelledby="de-q">
+        <h3 id="de-q">Exam questions</h3>
+        ${qs.length ? html`<ol class="pt-dw-examqs">${qs.map(function (q) {
+          return html`<li><p class="pt-dw-qp">${q.prompt}</p><ul class="pt-dw-ans">${q.options.map(function (x, k) {
+            return html`<li class="${k === q.correct ? 'is-right' : ''}"><b>${LETTERS[k]}</b><span>${x}${k === q.correct ? html` <span class="pt-dw-tag">Right answer</span>` : ''}</span></li>`;
+          })}</ul>${taken ? '' : html`<button type="button" class="pt-textbtn pt-textbtn--danger" data-delq="${q.id}">Delete<span class="sr-only"> this question</span></button>`}</li>`;
+        })}</ol>` : empty('No exam questions yet', 'Add them below, one at a time.')}
+        ${taken ? html`<p class="pt-meta">Students have taken the exam, so questions can no longer be changed.</p>` : html`
+        <form class="form form--plain pt-form pt-dw-gap" id="de-add" novalidate>
+          ${dwQuestionFields(1, null, false, 'New question')}
+          <p class="form-error" role="alert" tabindex="-1" hidden></p>
+          <button class="btn btn--sm btn--blue" type="submit">${icon('plus')}Add this question</button>
+        </form>`}
+      </section>
+      <p class="pt-meta">Written part: mark it on paper, then type each student’s score on their page (Students → open a student).</p>`);
+    $('#de-toggle', el).addEventListener('click', async function (ev) {
+      var b = ev.currentTarget; busy(b, true);
+      try {
+        await run(S.sb.from('dawrah_terms').update({ exam_open: !t.exam_open }).eq('id', t.id).select('id'));
+        toast(t.exam_open ? 'The exam is closed.' : 'The exam is open. Students can take it now.');
+        S.focusNext = false; dwExamSetup(el);
+      } catch (e) { busy(b, false); toast(friendly(e), 'error'); }
+    });
+    onSubmit($('#de-add', el), async function (v) {
+      var q = dwReadQuestion(v, 1);
+      if (!q) throw new Error('Type the question and its answers.');
+      var pos = qs.reduce(function (m, x) { return Math.max(m, x.position); }, 0) + 1;
+      await run(S.sb.from('dawrah_questions').insert({ term_id: t.id, lesson_id: null, position: pos, prompt: q.prompt, options: q.options, correct: q.correct }));
+      toast('Question added.'); S.focusNext = false; dwExamSetup(el);
+    });
+    $$('[data-delq]', el).forEach(function (b) {
+      b.addEventListener('click', async function () {
+        if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Press again to delete'; return; }
+        try {
+          await run(S.sb.from('dawrah_questions').delete().eq('id', b.dataset.delq));
+          toast('Question deleted.'); S.focusNext = false; dwExamSetup(el);
+        } catch (e) { toast(friendly(e), 'error'); }
+      });
+    });
+  }
+
+  // ------------------------------------------------------------------ admin: settings
+  function parseRoster(text) {
+    var EM = /^[^@\s]+@[^@\s]+\.[^@\s]+$/, PH = /^\+?[\d\s()-]{7,}$/, TS = /^\d{1,4}[\/.-]\d{1,2}[\/.-]\d{1,4}/;
+    var split = function (l) {
+      if (l.indexOf('\t') >= 0) return l.split('\t').map(function (c) { return c.trim(); });
+      var cells = [], cur = '', q = false;
+      for (var i = 0; i < l.length; i++) {
+        var ch = l[i];
+        if (q) { if (ch === '"') { if (l[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+        else if (ch === '"') q = true; else if (ch === ',') { cells.push(cur.trim()); cur = ''; } else cur += ch;
+      }
+      cells.push(cur.trim());
+      return cells;
+    };
+    var rows = String(text || '').split(/\r?\n/).filter(function (l) { return l.trim(); }).map(split);
+    var iEmail = -1, iNames = [], iPhone = -1, skipped = 0, byEmail = {};
+    if (rows.length && !rows[0].some(function (c) { return EM.test(c); })) {
+      var head = rows.shift().map(function (h) { return h.toLowerCase(); });
+      head.forEach(function (h, i) {
+        if (/e-?mail/.test(h)) { if (iEmail < 0) iEmail = i; return; }
+        if (/name/.test(h) && !/user ?name|nick/.test(h)) iNames.push(i);
+      });
+      [/whats/, /phone|tel/, /number/].some(function (re) {
+        iPhone = head.findIndex(function (h) { return re.test(h) && !/matric|reg|room|level|e-?mail/.test(h); });
+        return iPhone >= 0;
+      });
+    }
+    rows.forEach(function (r) {
+      var email = (iEmail >= 0 && EM.test(r[iEmail] || '') ? r[iEmail] : r.find(function (c) { return EM.test(c); }) || '').toLowerCase();
+      if (!email) { skipped++; return; }
+      var name = iNames.length ? iNames.map(function (i) { return r[i] || ''; }).join(' ').replace(/\s+/g, ' ').trim()
+        : (r.find(function (c) { return c && !EM.test(c) && !PH.test(c) && !TS.test(c) && /[a-z]/i.test(c); }) || '');
+      var phone = iPhone >= 0 ? r[iPhone] || '' : (r.find(function (c) { return PH.test(c) && !TS.test(c); }) || '');
+      byEmail[email] = { email: email, full_name: name.slice(0, 120) || null, phone: phone.slice(0, 30) || null };
+    });
+    var list = Object.keys(byEmail).map(function (k) { return byEmail[k]; });
+    return { list: list, skipped: skipped };
+  }
+
+  async function dwSettings(el) {
+    var mine = token(), t0 = dTerm();
+    view(el, loading('Loading settings…'), false);
+    var res = await Promise.all([
+      run(S.sb.from('dawrah_terms').select('*').eq('id', t0.id)),
+      run(S.sb.from('dawrah_admins').select('*').order('added_at')),
+      count(S.sb.from('dawrah_roster').select('email', { count: 'exact', head: true }).eq('term_id', t0.id))
+    ]);
+    if (!mine()) return;
+    var t = res[0][0] || t0, admins = res[1], registered = res[2];
+    S.dawrah.term = t;
+    view(el, html`${dwHead('settings')}
+      <section class="pt-card" aria-labelledby="dst-reg">
+        <h3 id="dst-reg">${icon('users')}Add registered students</h3>
+        <p><strong>${plural(registered, 'student')}</strong> registered so far.</p>
+        <ol class="pt-steps">
+          <li>Open the Google Sheet of the registration form’s responses.</li>
+          <li>Select the rows, including the top (header) row, and copy them.</li>
+          <li>Paste them below and press <strong>Add students</strong>. Pasting the same people again is safe.</li>
+        </ol>
+        <form class="form form--plain pt-form" id="dst-paste" novalidate>
+          <div class="field"><label for="dst-rows">Paste here</label><textarea id="dst-rows" name="rows" rows="5" placeholder="Or type one per line: email, full name, WhatsApp number"></textarea></div>
+          <p class="form-error" role="alert" tabindex="-1" hidden></p>
+          <button class="btn btn--blue" type="submit">Add students</button>
+        </form>
+        <p class="pt-meta">Each student then creates a portal login with the same email they registered with, and the Dawrah opens for them.</p>
+      </section>
+      <div class="pt-grid">
+        <section class="pt-card" aria-labelledby="dst-det">
+          <h3 id="dst-det">Dawrah details</h3>
+          <form class="form form--plain pt-form" id="dst-term" novalidate>
+            <div class="field"><label for="dt-title">Name</label><input id="dt-title" name="title" required maxlength="160" value="${t.title}"></div>
+            <div class="field"><label for="dt-sch">Days and time</label><input id="dt-sch" name="schedule" maxlength="200" value="${t.schedule || ''}" placeholder="For example: Mon, Wed and Fri, between Maghrib and Isha"></div>
+            <div class="field"><label for="dt-ven">Venue</label><input id="dt-ven" name="venue" maxlength="120" value="${t.venue || ''}"></div>
+            <div class="field"><label for="dt-book">Book link <span class="opt">(PDF; leave empty for “coming soon”)</span></label><input id="dt-book" name="book_url" maxlength="500" value="${t.book_url || ''}" placeholder="https://drive.google.com/…"></div>
+            <div class="field"><label for="dt-exam">Exam name</label><input id="dt-exam" name="exam_title" required maxlength="120" value="${t.exam_title}"></div>
+            <p class="form-error" role="alert" tabindex="-1" hidden></p>
+            <button class="btn btn--blue" type="submit">Save details</button>
+          </form>
+        </section>
+        <section class="pt-card" aria-labelledby="dst-adm">
+          <h3 id="dst-adm">${icon('shield')}Dawrah admins</h3>
+          <p class="pt-meta">They can add classes, see every student and follow up. Portal admins are always included.</p>
+          ${admins.length ? html`<ul class="pt-rows">${admins.map(function (a) {
+            return html`<li><div><strong>${a.full_name || a.email || 'Admin'}</strong><span class="pt-meta">${a.email || ''}</span></div>
+              <button type="button" class="pt-textbtn pt-textbtn--danger" data-deladm="${a.user_id}">Remove<span class="sr-only"> ${a.full_name || ''}</span></button></li>`;
+          })}</ul>` : html`<p>No extra admins yet.</p>`}
+          <form class="form form--plain pt-form" id="dst-addadm" novalidate>
+            <div class="field"><label for="da-email">Add an admin by email</label><input id="da-email" name="email" type="email" required autocomplete="off" aria-describedby="da-h"></div>
+            <p class="pt-meta" id="da-h">They must create a portal account with this email first.</p>
+            <p class="form-error" role="alert" tabindex="-1" hidden></p>
+            <button class="btn btn--sm btn--blue" type="submit">Add admin</button>
+          </form>
+        </section>
+      </div>
+      <details class="pt-details"><summary>Start the next Dawrah</summary>
+        <p>When this Dawrah is over, start the next one here. This Dawrah’s students, classes and scores are kept, but students will no longer see them. You will then add the new registrations.</p>
+        <form class="form form--plain pt-form" id="dst-new" novalidate>
+          <div class="field"><label for="dn-title">Name of the next Dawrah</label><input id="dn-title" name="title" required maxlength="160"></div>
+          <p class="form-error" role="alert" tabindex="-1" hidden></p>
+          <button class="btn btn--sm pt-btn-danger" type="submit">Start the next Dawrah</button>
+        </form>
+      </details>`);
+    onSubmit($('#dst-paste', el), async function (v, form) {
+      var p = parseRoster(v.rows);
+      if (!p.list.length) throw new Error('No email addresses found. Copy the rows from the sheet, including the email column.');
+      await run(S.sb.from('dawrah_roster').upsert(p.list.map(function (r) {
+        return { term_id: t.id, email: r.email, full_name: r.full_name, phone: r.phone };
+      }), { onConflict: 'term_id,email' }));
+      form.reset();
+      toast(plural(p.list.length, 'student') + ' added or updated.' + (p.skipped ? ' ' + plural(p.skipped, 'line') + ' without an email skipped.' : ''));
+      S.focusNext = false; dwSettings(el);
+    });
+    onSubmit($('#dst-term', el), async function (v) {
+      if ((v.title || '').length < 2) throw new Error('Enter the name of the Dawrah.');
+      if ((v.exam_title || '').length < 2) throw new Error('Enter the exam name.');
+      if (v.book_url && !/^(https?:\/\/|assets\/)/i.test(v.book_url)) throw new Error('The book link must start with https://');
+      var rows = await run(S.sb.from('dawrah_terms').update({ title: v.title, schedule: v.schedule || null, venue: v.venue || null, book_url: v.book_url || null, exam_title: v.exam_title }).eq('id', t.id).select('*'));
+      if (!rows.length) throw new Error('The details could not be saved.');
+      S.dawrah.term = rows[0];
+      toast('Dawrah details saved.'); S.focusNext = false; dwSettings(el);
+    });
+    onSubmit($('#dst-addadm', el), async function (v) {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email || '')) throw new Error('Enter a valid email address.');
+      var name = await run(S.sb.rpc('dawrah_add_admin', { admin_email: v.email }));
+      toast((name || v.email) + ' is now a Dawrah admin.'); S.focusNext = false; dwSettings(el);
+    });
+    $$('[data-deladm]', el).forEach(function (b) {
+      b.addEventListener('click', async function () {
+        if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Press again to remove'; return; }
+        try {
+          await run(S.sb.from('dawrah_admins').delete().eq('user_id', b.dataset.deladm));
+          toast('Admin removed.');
+          if (b.dataset.deladm === S.me.id) { S.dawrah = await run(S.sb.rpc('dawrah_me')); return route(); }
+          S.focusNext = false; dwSettings(el);
+        } catch (e) { toast(friendly(e), 'error'); }
+      });
+    });
+    onSubmit($('#dst-new', el), async function (v, form) {
+      if ((v.title || '').length < 2) throw new Error('Enter the name of the next Dawrah.');
+      if (form.dataset.ready !== '1') { form.dataset.ready = '1'; throw new Error('Are you sure? Press “Start the next Dawrah” again to confirm.'); }
+      await run(S.sb.from('dawrah_terms').update({ is_current: false }).eq('id', t.id).select('id'));
+      try {
+        await run(S.sb.from('dawrah_terms').insert({ title: v.title, schedule: t.schedule, venue: t.venue, exam_title: 'Final exam', is_current: true }));
+      } catch (e) {
+        await S.sb.from('dawrah_terms').update({ is_current: true }).eq('id', t.id);
+        throw e;
+      }
+      S.dawrah = await run(S.sb.rpc('dawrah_me'));
+      toast('The next Dawrah has started. Add its registrations now.');
+      go('#/dawrah/settings');
     });
   }
 
@@ -1560,7 +2307,7 @@
 
   // ===================================================================== start
   function bootFailed(e) {
-    root.innerHTML = out(html`<div class="pt-auth"><div class="pt-auth__card"><p class="pt-auth__kicker">Islamiyyah Student Portal</p>
+    root.innerHTML = out(html`<div class="pt-auth"><div class="pt-auth__card"><p class="pt-auth__kicker">AMSC Student Portal</p>
       <h2>The portal did not open</h2>${errorBox(e)}<a class="btn btn--blue pt-wide" href="">Refresh the page</a>${helpLink('Tell the Islamiyyah admin on WhatsApp')}</div></div>`);
     root.setAttribute('aria-busy', 'false');
     if (window.console) console.error('[portal]', e);

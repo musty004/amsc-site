@@ -1,6 +1,6 @@
 """The Islamiyyah programme page and the Student Portal page."""
 import data as D
-from shell import icon, img, ar, pill, ext, band, pagehead
+from shell import icon, img, ar, pill, ext, band, pagehead, gform
 
 DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
@@ -156,8 +156,8 @@ ISLAMIYYAH = pagehead(
 PORTAL = f'''
 <div class="portal-head">
   <div class="wrap portal-head__inner">
-    <div><h1>Islamiyyah Student Portal</h1><p>Qur&rsquo;an progress, books and notes, classes and announcements.</p></div>
-    <a href="islamiyyah.html">About the Islamiyyah</a>
+    <div><h1>AMSC Student Portal</h1><p>For the Islamiyyah and the Dawrah: classes, recordings, progress and books.</p></div>
+    <span class="portal-head__links"><a href="islamiyyah.html">Islamiyyah</a> <a href="dawrah.html">Dawrah</a></span>
   </div>
 </div>
 <div class="portal-wrap">
@@ -170,4 +170,57 @@ PORTAL = f'''
     <p id="portal-live" class="sr-only" aria-live="polite"></p>
   </div>
 </div>
+'''
+
+
+coordinators = "".join(
+    f'<li><span><strong>{n}</strong></span>{ext(D.dawrah_wa(p), "WhatsApp", "btn btn--sm btn--green")}</li>'
+    for n, p in D.DAWRAH_COORDINATORS)
+
+DAWRAH = pagehead(
+    "Dawrah",
+    f"Short, focused courses in Islamic knowledge. This term: {D.DAWRAH_TITLE}, {D.DAWRAH_SUBJECT[0].lower() + D.DAWRAH_SUBJECT[1:]}.") + f'''
+<section class="section">
+  <div class="wrap dawrah">
+    <div class="dawrah__info">
+      <p class="kicker">{pill("Registration open")} This term</p>
+      <h2>{D.DAWRAH_TITLE}</h2>
+      <p class="lede">{D.DAWRAH_SUBJECT}.</p>
+      <dl class="facts">
+        <div><dt>{icon("pin")}Where</dt><dd>{D.DAWRAH_VENUE}</dd></div>
+        <div><dt>{icon("clock")}When</dt><dd>{D.DAWRAH_WHEN}. {D.DAWRAH_DAYS}.</dd></div>
+        <div><dt>{icon("users")}Who</dt><dd>Brothers and sisters, together in one class, whatever your level</dd></div>
+        <div><dt>{icon("calendar")}How long</dt><dd>{D.DAWRAH_LENGTH}</dd></div>
+        <div><dt>{icon("book")}Book</dt><dd>The text will be shared in the portal. Coming soon.</dd></div>
+      </dl>
+      <h3>How it works</h3>
+      <ol class="steps-simple">
+        <li><strong>Register</strong> with the form on this page.</li>
+        <li><strong>Create your portal login</strong> with the same email when the Dawrah begins.</li>
+        <li><strong>Attend</strong> at the masjid. Missed a class for a valid reason? Listen to the recording in the portal.</li>
+        <li><strong>Answer two short questions</strong> after each class, then take the final exam.</li>
+      </ol>
+      <p class="note">Only register if you can commit. The Dawrah is for students who want to go deep in their knowledge.</p>
+    </div>
+    <div class="dawrah__form" id="register">
+      <h2 class="h3">Register</h2>
+      {gform(D.DAWRAH_FORM, "Dawrah registration form", "Registration received",
+             "JazakAllahu khayran. You are registered for " + D.DAWRAH_TITLE + ". When the Dawrah begins, create your portal login with the same email to get the recordings and short questions.")}
+    </div>
+  </div>
+</section>
+
+<section class="section section--mist section--tight">
+  <div class="wrap split split--center">
+    <div>
+      <h2>Questions?</h2>
+      <p class="lede">Message the Dawrah coordinators on WhatsApp.</p>
+    </div>
+    <ul class="contacts-list">{coordinators}</ul>
+  </div>
+</section>
+
+{band("Already registered?",
+      "Log in to the portal for the recordings, the two questions after each class, the book and the exam. New to the portal? Create your login with the same email you registered with.",
+      (D.PORTAL + "#/dawrah", "Log in to the Dawrah"), (D.PORTAL + "#/signup", "Create your login"))}
 '''

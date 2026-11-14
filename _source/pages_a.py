@@ -221,6 +221,21 @@ PROGRAMMES = pagehead("Programmes",
   </div>
 </section>
 
+<section class="section section--tight section--flush" id="dawrah">
+  <div class="wrap">
+    <div class="partner-strip">
+      <div class="partner-strip__copy">
+        <p class="kicker">{pill("Registration open")} {D.DAWRAH_VENUE}</p>
+        <h2>Dawrah: {D.DAWRAH_TITLE}</h2>
+        <p>{D.DAWRAH_SUBJECT}. {D.DAWRAH_WHEN}, for {D.DAWRAH_LENGTH.lower()}, with recordings, short
+        questions after each class and a final exam.</p>
+        <div class="actions"><a class="btn btn--blue" href="{D.DAWRAH_PAGE}#register">Register for the Dawrah</a>
+          <a class="link" href="{D.DAWRAH_PAGE}">About the Dawrah</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="section section--mist" id="tutorials">
   <div class="wrap split">
     <div>

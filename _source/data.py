@@ -58,9 +58,12 @@ ASKBOX = "https://gdpd.xyz/amsc"
 
 
 def wa(num, msg):
-    """WhatsApp click-to-chat link for a Nigerian number like 08029320846."""
+    """WhatsApp click-to-chat link for a Nigerian number like 08029320846 or +2348029320846."""
     from urllib.parse import quote
-    return f"https://wa.me/234{num[1:]}?text={quote(msg)}"
+    digits = "".join(ch for ch in num if ch.isdigit())
+    if digits.startswith("0"):
+        digits = "234" + digits[1:]
+    return f"https://wa.me/{digits}?text={quote(msg)}"
 
 
 def wa_text(msg):
@@ -260,3 +263,24 @@ PORTAL = "portal.html"
 def portal_help_wa():
     p = holder("Mudeer", "b")
     return wa(p[4], "Assalamu alaykum, I need help with the AMSC Islamiyyah Student Portal.")
+
+
+# ---------------------------------------------------------------- Dawrah
+DAWRAH_PAGE = "dawrah.html"
+DAWRAH_TITLE = "Dawratul-Hadith"
+DAWRAH_SUBJECT = "The 40 Hadith of Imam An-Nawawi, explained in depth"
+DAWRAH_VENUE = "AFIT Masjid"
+DAWRAH_WHEN = "Three days a week, between Maghrib and Isha"
+DAWRAH_DAYS = "The exact days will be announced soon"
+DAWRAH_LENGTH = "About one month"
+DAWRAH_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSeGiplm22Q5WkUudVjhtKEPXfPbH_Z2QhF5mg3CItt2KSP2kw/viewform"
+DAWRAH_FORM_SHORT = "https://forms.gle/nGAQFbUX6yzNbALT9"
+# (name, WhatsApp number) of the people who run and follow up the Dawrah
+DAWRAH_COORDINATORS = [
+    ("Muhammadmustapha Yusuf", "+2347084111381"),
+    ("Sheikh Abdullah Musnad", "+2348030523205"),
+]
+
+
+def dawrah_wa(number):
+    return wa(number, "Assalamu alaykum, I have a question about the Dawrah.")

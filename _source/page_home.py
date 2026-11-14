@@ -49,8 +49,8 @@ INDEX = f'''
 
 <div class="strip">
   <div class="strip__inner">
-    <span>Welcome to the {D.SESSION} session.</span>
-    <a href="{D.JOIN}">Register to join the AMSC WhatsApp Community</a>
+    <span>{D.DAWRAH_TITLE}: the 40 Hadith of Imam An-Nawawi.</span>
+    <a href="{D.DAWRAH_PAGE}#register">Register for the Dawrah</a>
   </div>
 </div>
 

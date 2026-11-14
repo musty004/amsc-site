@@ -146,6 +146,7 @@ def header(current):
         <a href="welfare.html">Welfare</a>
         <a href="amanah.html">Amanah Desk</a>
         <a href="islamiyyah.html">Islamiyyah</a>
+        <a href="{D.DAWRAH_PAGE}">Dawrah</a>
         <a href="{D.PORTAL}">Student Portal</a>
       </div>
       <a class="btn btn--yellow nav__join" href="{D.JOIN}">Join AMSC</a>
@@ -189,7 +190,8 @@ def footer():
         <ul>
           <li><a href="freshers.html">Freshers&rsquo; guide</a></li>
           <li><a href="islamiyyah.html">Islamiyyah</a></li>
-          <li><a href="{D.PORTAL}">Islamiyyah Student Portal</a></li>
+          <li><a href="{D.DAWRAH_PAGE}">Dawrah</a></li>
+          <li><a href="{D.PORTAL}">Student Portal</a></li>
           <li><a href="academics.html">Academics</a></li>
           <li><a href="salah.html">Prayer times</a></li>
           <li><a href="sisters.html">Sisters</a></li>
@@ -357,11 +359,13 @@ def formspree_form(action, inner, title, text, subject, cls="form"):
 </form>'''
 
 
-def gform():
-    """The registration Google Form, embedded so visitors stay on the site.
-    main.js loads it, then shows a full-page thank-you after it is submitted."""
-    return f'''<div class="gform" data-gform="{D.GFORM_EMBED}">
-  <iframe title="AMSC registration form" data-title="AMSC registration form">Loading the form&hellip;</iframe>
-  <noscript><p class="note">The form needs JavaScript. <a href="{D.GFORM}">Open the registration form</a>.</p></noscript>
+def gform(url=None, title="AMSC registration form", done_title="", done_text=""):
+    """A Google Form embedded so visitors stay on the site. main.js loads it, then shows
+    a full-page thank-you (done_title/done_text, or the default) after it is submitted."""
+    url = url or D.GFORM
+    done = (f' data-done-title="{done_title}" data-done-text="{done_text}"' if done_title else "")
+    return f'''<div class="gform" data-gform="{url}?embedded=true"{done}>
+  <iframe title="{title}" data-title="{title}">Loading the form&hellip;</iframe>
+  <noscript><p class="note">The form needs JavaScript. <a href="{url}">Open the form</a>.</p></noscript>
 </div>
-<p class="note">Form not loading? {ext(D.GFORM, "Open it in a new tab")}.</p>'''
+<p class="note">Form not loading? {ext(url, "Open it in a new tab")}.</p>'''

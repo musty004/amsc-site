@@ -654,5 +654,347 @@ create policy "materials: staff upload" on storage.objects for insert to authent
 create policy "materials: staff remove" on storage.objects for delete to authenticated
   using (bucket_id = 'materials' and (select private.is_staff()));
 
+-- =============================================================================
+-- DAWRAH (short courses such as Dawratul-Hadith)
+--   dawrah_terms     one row per Dawrah term; exactly one is "current"
+--   dawrah_roster    students registered for a term (pasted from the registration sheet)
+--   dawrah_admins    people who run the Dawrah (portal admins are included automatically)
+--   dawrah_lessons   one row per class: recording link and notes
+--   dawrah_questions the two questions after each class, and the exam questions
+--   dawrah_attempts  each student's answers and score (one try per class, one exam)
+--   dawrah_views     when a student opened a class
+-- A student gets into the Dawrah by signing up on the portal with the same email
+-- they used on the registration form.
+-- =============================================================================
+create table if not exists public.dawrah_terms (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null check (char_length(title) between 2 and 160),
+  schedule    text check (char_length(schedule) <= 200),
+  venue       text check (char_length(venue) <= 120),
+  book_url    text check (book_url ~* '^(https?://|assets/)'),
+  exam_title  text not null default 'Final exam' check (char_length(exam_title) between 2 and 120),
+  exam_open   boolean not null default false,
+  is_current  boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+create unique index if not exists dawrah_terms_one_current on public.dawrah_terms (is_current) where is_current;
+insert into public.dawrah_terms (title, schedule, venue, is_current)
+select 'Dawratul-Hadith: The 40 Hadith of Imam An-Nawawi', 'Three days a week, between Maghrib and Isha', 'AFIT Masjid', true
+where not exists (select 1 from public.dawrah_terms);
+
+create table if not exists public.dawrah_admins (
+  user_id    uuid primary key references public.profiles (id) on delete cascade,
+  full_name  text,
+  email      text,
+  added_at   timestamptz not null default now()
+);
+alter table public.dawrah_admins add column if not exists full_name text;
+alter table public.dawrah_admins add column if not exists email text;
+
+create table if not exists public.dawrah_roster (
+  term_id        uuid not null references public.dawrah_terms (id) on delete cascade,
+  email          text not null check (email = lower(email) and email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'),
+  full_name      text check (char_length(full_name) <= 120),
+  phone          text check (char_length(phone) <= 30),
+  written_score  numeric(5, 2) check (written_score between 0 and 100),
+  added_at       timestamptz not null default now(),
+  primary key (term_id, email)
+);
+
+create table if not exists public.dawrah_lessons (
+  id           uuid primary key default gen_random_uuid(),
+  term_id      uuid not null references public.dawrah_terms (id) on delete cascade,
+  day_number   smallint not null check (day_number between 1 and 300),
+  title        text not null check (char_length(title) between 2 and 160),
+  lesson_date  date not null default current_date,
+  audio_url    text check (audio_url ~* '^https?://'),
+  notes        text check (char_length(notes) <= 600),
+  created_at   timestamptz not null default now()
+);
+create index if not exists dawrah_lessons_term_idx on public.dawrah_lessons (term_id, day_number);
+
+create table if not exists public.dawrah_questions (
+  id         uuid primary key default gen_random_uuid(),
+  term_id    uuid not null references public.dawrah_terms (id) on delete cascade,
+  lesson_id  uuid references public.dawrah_lessons (id) on delete cascade,   -- empty = an exam question
+  position   smallint not null default 1,
+  prompt     text not null check (char_length(prompt) between 2 and 500),
+  options    text[] not null check (array_length(options, 1) between 2 and 6),
+  correct    smallint not null check (correct >= 0),
+  check (correct < array_length(options, 1))
+);
+create index if not exists dawrah_questions_lesson_idx on public.dawrah_questions (lesson_id, position);
+
+create table if not exists public.dawrah_attempts (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references public.profiles (id) on delete cascade,
+  term_id       uuid not null references public.dawrah_terms (id) on delete cascade,
+  lesson_id     uuid references public.dawrah_lessons (id) on delete cascade,  -- empty = the exam
+  score         smallint not null,
+  total         smallint not null,
+  answers       jsonb not null default '{}'::jsonb,
+  submitted_at  timestamptz not null default now()
+);
+create unique index if not exists dawrah_attempts_one_quiz on public.dawrah_attempts (user_id, lesson_id) where lesson_id is not null;
+create unique index if not exists dawrah_attempts_one_exam on public.dawrah_attempts (user_id, term_id) where lesson_id is null;
+
+create table if not exists public.dawrah_views (
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  lesson_id  uuid not null references public.dawrah_lessons (id) on delete cascade,
+  first_at   timestamptz not null default now(),
+  last_at    timestamptz not null default now(),
+  primary key (user_id, lesson_id)
+);
+
+-- ---------- helpers
+create or replace function private.my_email() returns text
+language sql stable security definer set search_path = '' as $$
+  select lower(email) from public.profiles where id = (select auth.uid());
+$$;
+
+create or replace function private.dawrah_admin() returns boolean
+language sql stable security definer set search_path = '' as $$
+  select private.is_admin()
+      or exists (select 1 from public.dawrah_admins where user_id = (select auth.uid()));
+$$;
+
+create or replace function private.dawrah_student(term uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.dawrah_roster r
+                 where r.term_id = term and r.email = private.my_email());
+$$;
+
+create or replace function private.dawrah_current() returns uuid
+language sql stable security definer set search_path = '' as $$
+  select id from public.dawrah_terms where is_current limit 1;
+$$;
+
+revoke all on all functions in schema private from public, anon;
+grant execute on all functions in schema private to authenticated;
+
+-- ---------- security rules
+alter table public.dawrah_terms     enable row level security;
+alter table public.dawrah_admins    enable row level security;
+alter table public.dawrah_roster    enable row level security;
+alter table public.dawrah_lessons   enable row level security;
+alter table public.dawrah_questions enable row level security;
+alter table public.dawrah_attempts  enable row level security;
+alter table public.dawrah_views     enable row level security;
+
+revoke all on public.dawrah_terms, public.dawrah_admins, public.dawrah_roster, public.dawrah_lessons,
+              public.dawrah_questions, public.dawrah_attempts, public.dawrah_views from anon;
+grant select, insert, update, delete on public.dawrah_terms, public.dawrah_admins, public.dawrah_roster,
+      public.dawrah_lessons, public.dawrah_questions to authenticated;
+grant select, delete on public.dawrah_attempts, public.dawrah_views to authenticated;
+revoke insert, update on public.dawrah_attempts, public.dawrah_views from authenticated;
+
+drop policy if exists dawrah_terms_read  on public.dawrah_terms;
+drop policy if exists dawrah_terms_write on public.dawrah_terms;
+create policy dawrah_terms_read on public.dawrah_terms for select to authenticated
+  using ((select private.dawrah_admin()) or private.dawrah_student(id));
+create policy dawrah_terms_write on public.dawrah_terms for all to authenticated
+  using ((select private.dawrah_admin())) with check ((select private.dawrah_admin()));
+
+drop policy if exists dawrah_admins_all on public.dawrah_admins;
+create policy dawrah_admins_all on public.dawrah_admins for all to authenticated
+  using ((select private.dawrah_admin())) with check ((select private.dawrah_admin()));
+
+drop policy if exists dawrah_roster_read  on public.dawrah_roster;
+drop policy if exists dawrah_roster_write on public.dawrah_roster;
+create policy dawrah_roster_read on public.dawrah_roster for select to authenticated
+  using ((select private.dawrah_admin()) or email = (select private.my_email()));
+create policy dawrah_roster_write on public.dawrah_roster for all to authenticated
+  using ((select private.dawrah_admin())) with check ((select private.dawrah_admin()));
+
+drop policy if exists dawrah_lessons_read  on public.dawrah_lessons;
+drop policy if exists dawrah_lessons_write on public.dawrah_lessons;
+create policy dawrah_lessons_read on public.dawrah_lessons for select to authenticated
+  using ((select private.dawrah_admin()) or private.dawrah_student(term_id));
+create policy dawrah_lessons_write on public.dawrah_lessons for all to authenticated
+  using ((select private.dawrah_admin())) with check ((select private.dawrah_admin()));
+
+-- Students never read questions directly (the answers are in this table);
+-- they get them without answers through dawrah_questions_for().
+drop policy if exists dawrah_questions_admin on public.dawrah_questions;
+create policy dawrah_questions_admin on public.dawrah_questions for all to authenticated
+  using ((select private.dawrah_admin())) with check ((select private.dawrah_admin()));
+
+drop policy if exists dawrah_attempts_read   on public.dawrah_attempts;
+drop policy if exists dawrah_attempts_delete on public.dawrah_attempts;
+create policy dawrah_attempts_read on public.dawrah_attempts for select to authenticated
+  using (user_id = (select auth.uid()) or (select private.dawrah_admin()));
+create policy dawrah_attempts_delete on public.dawrah_attempts for delete to authenticated
+  using ((select private.dawrah_admin()));
+
+drop policy if exists dawrah_views_read on public.dawrah_views;
+create policy dawrah_views_read on public.dawrah_views for select to authenticated
+  using (user_id = (select auth.uid()) or (select private.dawrah_admin()));
+
+-- ---------- functions the portal calls
+-- Who am I in the Dawrah?
+create or replace function public.dawrah_me() returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'admin', private.dawrah_admin(),
+    'student', coalesce(private.dawrah_student(t.id), false),
+    'term', case when private.dawrah_admin() or private.dawrah_student(t.id) then to_jsonb(t) end)
+  from (select 1) one
+  left join public.dawrah_terms t on t.is_current;
+$$;
+
+-- Questions without their answers: a class's two questions, or the exam (exam = null lesson).
+create or replace function public.dawrah_questions_for(lesson uuid)
+returns table (id uuid, q_position smallint, prompt text, options text[])
+language plpgsql stable security definer set search_path = '' as $$
+declare t uuid;
+begin
+  if lesson is null then
+    select dt.id into t from public.dawrah_terms dt where dt.is_current;
+    if not private.dawrah_admin() and not (
+         private.dawrah_student(t) and exists (select 1 from public.dawrah_terms where dawrah_terms.id = t and exam_open)) then
+      raise exception 'The exam is not open.' using errcode = '42501';
+    end if;
+  else
+    select l.term_id into t from public.dawrah_lessons l where l.id = lesson;
+    if t is null or not (private.dawrah_admin() or private.dawrah_student(t)) then
+      raise exception 'You are not registered for this Dawrah.' using errcode = '42501';
+    end if;
+  end if;
+  return query
+    select q.id, q.position, q.prompt, q.options from public.dawrah_questions q
+    where q.term_id = t and q.lesson_id is not distinct from lesson
+    order by q.position, q.id;
+end;
+$$;
+
+-- Submit answers once. answers = {"<question id>": <chosen option index>, ...}
+-- Returns the score; for a class it also returns the right answers.
+create or replace function public.dawrah_submit(lesson uuid, answers jsonb) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  t uuid; me uuid := (select auth.uid()); sc int := 0; tot int := 0; q record; res jsonb := '[]'::jsonb; pick int;
+begin
+  if lesson is null then
+    select dt.id into t from public.dawrah_terms dt where dt.is_current and dt.exam_open;
+    if t is null then raise exception 'The exam is not open.' using errcode = '42501'; end if;
+  else
+    select l.term_id into t from public.dawrah_lessons l where l.id = lesson;
+  end if;
+  if t is null or not private.dawrah_student(t) then
+    raise exception 'You are not registered for this Dawrah.' using errcode = '42501';
+  end if;
+  if exists (select 1 from public.dawrah_attempts a where a.user_id = me and a.term_id = t
+             and a.lesson_id is not distinct from lesson) then
+    raise exception 'You have already answered these questions.' using errcode = '23505';
+  end if;
+  for q in select * from public.dawrah_questions dq where dq.term_id = t
+           and dq.lesson_id is not distinct from lesson order by dq.position, dq.id loop
+    tot := tot + 1;
+    pick := case when jsonb_typeof(answers -> q.id::text) = 'number' then (answers ->> q.id::text)::int end;
+    if pick = q.correct then sc := sc + 1; end if;
+    res := res || jsonb_build_object('id', q.id, 'chosen', pick, 'correct', q.correct);
+  end loop;
+  if tot = 0 then raise exception 'There are no questions yet.' using errcode = '22023'; end if;
+  insert into public.dawrah_attempts (user_id, term_id, lesson_id, score, total, answers)
+  values (me, t, lesson, sc, tot, coalesce(answers, '{}'::jsonb));
+  return jsonb_build_object('score', sc, 'total', tot, 'results', case when lesson is null then null else res end);
+end;
+$$;
+
+-- After answering a class's questions: see them with the right answers.
+create or replace function public.dawrah_review(lesson uuid)
+returns table (id uuid, q_position smallint, prompt text, options text[], correct smallint, chosen int)
+language sql stable security definer set search_path = '' as $$
+  select q.id, q.position, q.prompt, q.options, q.correct, (a.answers ->> q.id::text)::int
+  from public.dawrah_questions q
+  join public.dawrah_attempts a on a.lesson_id = q.lesson_id and a.user_id = (select auth.uid())
+  where q.lesson_id = lesson
+  order by q.position, q.id;
+$$;
+
+-- Record that a student opened a class's recording.
+create or replace function public.dawrah_opened(lesson uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+declare t uuid;
+begin
+  select l.term_id into t from public.dawrah_lessons l where l.id = lesson;
+  if t is null or not private.dawrah_student(t) then return; end if;
+  insert into public.dawrah_views (user_id, lesson_id) values ((select auth.uid()), lesson)
+  on conflict (user_id, lesson_id) do update set last_at = now();
+end;
+$$;
+
+-- The follow-up table for Dawrah admins: one row per registered student.
+create or replace function public.dawrah_tracker()
+returns table (email text, full_name text, phone text, user_id uuid, signed_up boolean,
+               classes_done int, quiz_score int, quiz_total int, opened int,
+               exam_score int, exam_total int, written_score numeric, last_active timestamptz)
+language plpgsql stable security definer set search_path = '' as $$
+declare t uuid := private.dawrah_current();
+begin
+  if not private.dawrah_admin() then
+    raise exception 'Only Dawrah admins can see this.' using errcode = '42501';
+  end if;
+  return query
+    select r.email, coalesce(p.full_name, r.full_name), coalesce(nullif(r.phone, ''), p.phone), p.id, p.id is not null,
+      (select count(*)::int from public.dawrah_attempts a where a.user_id = p.id and a.term_id = t and a.lesson_id is not null),
+      (select coalesce(sum(a.score), 0)::int from public.dawrah_attempts a where a.user_id = p.id and a.term_id = t and a.lesson_id is not null),
+      (select coalesce(sum(a.total), 0)::int from public.dawrah_attempts a where a.user_id = p.id and a.term_id = t and a.lesson_id is not null),
+      (select count(*)::int from public.dawrah_views v join public.dawrah_lessons l on l.id = v.lesson_id where v.user_id = p.id and l.term_id = t),
+      (select a.score::int from public.dawrah_attempts a where a.user_id = p.id and a.term_id = t and a.lesson_id is null),
+      (select a.total::int from public.dawrah_attempts a where a.user_id = p.id and a.term_id = t and a.lesson_id is null),
+      r.written_score,
+      greatest((select max(a.submitted_at) from public.dawrah_attempts a where a.user_id = p.id and a.term_id = t),
+               (select max(v.last_at) from public.dawrah_views v join public.dawrah_lessons l on l.id = v.lesson_id where v.user_id = p.id and l.term_id = t))
+    from public.dawrah_roster r
+    left join public.profiles p on lower(p.email) = r.email
+    where r.term_id = t
+    order by coalesce(p.full_name, r.full_name, r.email);
+end;
+$$;
+
+-- The current term's classes for the student (or admin) asking, with their own result.
+-- Students see a class from its date; admins see every class.
+create or replace function public.dawrah_my_classes()
+returns table (id uuid, day_number smallint, title text, lesson_date date, audio_url text, notes text,
+               questions int, score int, total int, opened boolean)
+language sql stable security definer set search_path = '' as $$
+  select l.id, l.day_number, l.title, l.lesson_date, l.audio_url, l.notes,
+    (select count(*)::int from public.dawrah_questions q where q.lesson_id = l.id),
+    a.score::int, a.total::int,
+    exists (select 1 from public.dawrah_views v where v.lesson_id = l.id and v.user_id = (select auth.uid()))
+  from public.dawrah_lessons l
+  left join public.dawrah_attempts a on a.lesson_id = l.id and a.user_id = (select auth.uid())
+  where l.term_id = private.dawrah_current()
+    and (private.dawrah_admin()
+         or (private.dawrah_student(l.term_id) and l.lesson_date <= (now() at time zone 'Africa/Lagos')::date))
+  order by l.day_number, l.lesson_date;
+$$;
+
+-- Add a Dawrah admin by the email they signed up with.
+create or replace function public.dawrah_add_admin(admin_email text) returns text
+language plpgsql security definer set search_path = '' as $$
+declare who uuid; nm text;
+begin
+  if not private.dawrah_admin() then
+    raise exception 'Only Dawrah admins can add admins.' using errcode = '42501';
+  end if;
+  select id, full_name into who, nm from public.profiles where lower(email) = lower(trim(admin_email));
+  if who is null then
+    raise exception 'No portal account uses that email yet. Ask them to create one first.' using errcode = 'P0002';
+  end if;
+  insert into public.dawrah_admins (user_id, full_name, email) values (who, nm, lower(trim(admin_email)))
+  on conflict (user_id) do update set full_name = excluded.full_name, email = excluded.email;
+  return nm;
+end;
+$$;
+
+revoke all on function public.dawrah_me(), public.dawrah_questions_for(uuid), public.dawrah_submit(uuid, jsonb),
+  public.dawrah_review(uuid), public.dawrah_opened(uuid), public.dawrah_tracker(), public.dawrah_add_admin(text),
+  public.dawrah_my_classes() from public, anon;
+grant execute on function public.dawrah_me(), public.dawrah_questions_for(uuid), public.dawrah_submit(uuid, jsonb),
+  public.dawrah_review(uuid), public.dawrah_opened(uuid), public.dawrah_tracker(), public.dawrah_add_admin(text),
+  public.dawrah_my_classes() to authenticated;
+
 -- Done. Next: sign up on the portal, then make yourself the first admin with
 --   update public.profiles set role = 'admin', status = 'active' where email = 'you@example.com';
