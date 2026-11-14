@@ -222,5 +222,5 @@ DAWRAH = pagehead(
 
 {band("Already registered?",
       "Log in to the portal for the recordings, the two questions after each class, the book and the exam. New to the portal? Create your login with the same email you registered with.",
-      (D.PORTAL + "#/dawrah", "Log in to the Dawrah"), (D.PORTAL + "#/signup", "Create your login"))}
+      (D.PORTAL + "#/dawrah", "Log in to the Dawrah"), (D.PORTAL + "#/signup/dawrah", "Create your login"))}
 '''

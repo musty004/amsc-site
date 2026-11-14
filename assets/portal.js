@@ -259,6 +259,7 @@
     }
     return null;
   }
+  var DAYNAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var t12 = function (t) { var p = t.split(':'); var h = +p[0]; return (h % 12 || 12) + ':' + p[1] + (h < 12 ? ' AM' : ' PM'); };
 
   // ===================================================================== shared pieces
@@ -471,37 +472,55 @@
     var h = $('#pt-h'); if (h && S.focusNext) h.focus();
     S.focusNext = true;
   }
-  var TABS = [
-    ['dashboard', 'Dashboard'], ['quran', 'Qur’an'], ['library', 'Library'], ['classes', 'Classes'], ['profile', 'Profile']
-  ];
+  // ------------------------------------------------------------------ who sees what
+  // Each person sees only their own workspace: an Islamiyyah student, teacher or admin, and/or a
+  // Dawrah student or admin. People in both programmes switch between them at the top.
+  var inIslamiyyah = function () { return !!(S.me && S.me.status === 'active'); };
   var dawrahAccess = function () { var d = S.dawrah; return !!(d && d.term && (d.student || d.admin)); };
-  var dawrahOnly = function () { return S.me && S.me.status === 'pending' && dawrahAccess(); };
-  function shell(active) {
-    var tabs;
-    if (dawrahOnly()) tabs = [['dawrah', 'Dawrah'], ['profile', 'Profile']];
-    else {
-      tabs = TABS.slice();
-      if (dawrahAccess()) tabs.splice(1, 0, ['dawrah', 'Dawrah']);
-      if (isStaff()) tabs.push(['teach', 'Teaching'], ['notices', 'Notices']);
-      if (isAdmin()) tabs.push(['admin', 'Admin']);
+  var dawrahOnly = function () { return dawrahAccess() && !inIslamiyyah(); };
+  function homeHash() {
+    if (inIslamiyyah()) return isAdmin() ? '#/admin' : isStaff() ? '#/teach' : '#/dashboard';
+    return dawrahAccess() ? '#/dawrah' : '#/dashboard';
+  }
+  function tabsFor(prog) {
+    if (prog === 'dawrah') {
+      if (!S.dawrah.admin) return [];
+      return [['dawrah', 'Students'], ['dawrah/classes', 'Classes'], ['dawrah/exam-setup', 'Exam'], ['dawrah/settings', 'Settings']]
+        .concat(S.dawrah.student ? [['dawrah/mine', 'My classes']] : []);
     }
-    var map = { student: 'teach', member: 'admin', members: 'admin', groups: 'admin' };
-    var cur = map[active] || active || (dawrahOnly() ? 'dawrah' : 'dashboard');
+    if (isAdmin()) return [['admin', 'Overview'], ['members', 'Members'], ['groups', 'Groups'], ['notices', 'Notices'], ['library', 'Library']]
+      .concat(S.teaches ? [['teach', 'My teaching']] : []);
+    if (isStaff()) return [['teach', 'My students'], ['notices', 'Notices'], ['library', 'Library']];
+    return [['dashboard', 'Home'], ['quran', 'Qur’an'], ['arabic', 'Arabic'], ['classes', 'My class'], ['library', 'Library']];
+  }
+  function roleLabel(prog) {
+    if (prog === 'dawrah') return S.dawrah.admin ? 'Dawrah admin' : 'Dawrah student';
+    var r = { student: 'Islamiyyah student', teacher: 'Islamiyyah teacher', admin: 'Islamiyyah admin' }[S.me.role];
+    return r + (S.me.role === 'student' && S.me.wing ? ' · ' + WING[S.me.wing] : '');
+  }
+  // prog: 'islamiyyah' or 'dawrah'; cur: the tab to mark ('' for none, such as the profile page).
+  function shell(prog, cur) {
+    var tabs = tabsFor(prog), both = inIslamiyyah() && dawrahAccess();
+    var islHome = homeHash().slice(2);
     setRoot(html`<div class="pt-shell">
       <div class="pt-top">
         <div class="pt-who"><span class="pt-mono" aria-hidden="true">${initials(S.me.full_name)}</span>
-          <div><strong>${S.me.full_name}</strong><span>${dawrahOnly() ? (S.dawrah.admin ? 'Dawrah admin' : 'Dawrah student') : ROLE[S.me.role]}${S.me.wing ? ' · ' + WING[S.me.wing] : ''}</span></div></div>
-        <button type="button" class="btn btn--sm btn--line" data-logout>Log out</button>
+          <div><strong>${S.me.full_name}</strong><span>${roleLabel(prog)}</span></div></div>
+        <div class="pt-top__act">
+          <a class="btn btn--sm btn--line" href="#/profile"${raw(cur === 'profile' ? ' aria-current="page"' : '')}>Profile</a>
+          <button type="button" class="btn btn--sm btn--line" data-logout>Log out</button>
+        </div>
       </div>
-      <nav class="pt-tabs" aria-label="Portal sections"><ul>${tabs.map(function (t) {
+      ${both ? html`<nav class="pt-prog" aria-label="Programme"><a href="#/${islHome}"${raw(prog === 'islamiyyah' ? ' aria-current="page"' : '')}>Islamiyyah</a><a href="#/dawrah"${raw(prog === 'dawrah' ? ' aria-current="page"' : '')}>Dawrah</a></nav>` : ''}
+      ${tabs.length ? html`<nav class="pt-tabs" aria-label="${prog === 'dawrah' ? 'Dawrah' : 'Islamiyyah'} sections"><ul>${tabs.map(function (t) {
         return html`<li><a href="#/${t[0]}"${raw(t[0] === cur ? ' aria-current="page"' : '')}>${t[1]}</a></li>`;
-      })}</ul></nav>
+      })}</ul></nav>` : ''}
       <div class="pt-view" id="pt-view"></div>
     </div>`);
     var hdr = document.querySelector('.site-header');
     if (hdr) document.documentElement.style.setProperty('--pt-head', hdr.offsetHeight + 'px');
     var cur_ = $('.pt-tabs [aria-current]');
-    if (cur_ && cur_.scrollIntoView) { var nav = $('.pt-tabs ul'); nav.scrollLeft = cur_.offsetLeft - 16; }
+    if (cur_) { var nav = $('.pt-tabs ul'); nav.scrollLeft = cur_.offsetLeft - 16; }
     return $('#pt-view');
   }
   function view(el, content, focus) {
@@ -510,8 +529,16 @@
     S.focusNext = true;
     var r = $('[data-retry]', el); if (r) r.addEventListener('click', route);
   }
+  function subnav(base, items, cur, label) {
+    return html`<nav class="pt-subnav" aria-label="${label}"><ul>${items.map(function (i) {
+      return html`<li><a href="#/${base}${i[0] ? '/' + i[0] : ''}"${raw(i[0] === cur ? ' aria-current="page"' : '')}>${i[1]}</a></li>`;
+    })}</ul></nav>`;
+  }
 
   // ===================================================================== router
+  var STUDENT_VIEWS = ['dashboard', 'quran', 'arabic', 'classes'];
+  var STAFF_VIEWS = ['teach', 'student', 'notices'];
+  var ADMIN_VIEWS = ['admin', 'members', 'member', 'groups'];
   async function route() {
     var h = location.hash || '';
     if (h && h.indexOf('#/') !== 0) return;              // a sign-in link fragment being read
@@ -519,34 +546,51 @@
     var name = parts[0] || '';
     if (!S.sb) return;
     if (!S.user) {
-      if (name === 'signup') return viewSignup();
+      if (name === 'signup') return viewSignup(parts[1]);
       if (name === 'forgot') return viewForgot();
       return viewLogin();
     }
     if (S.recovery) return viewSetPassword('reset');
     if (!S.me) return viewNoProfile();
     if (S.me.must_change_password) return viewSetPassword('forced');
-    if (S.me.status === 'inactive') return viewInactive();
-    if (S.me.status === 'pending' && !dawrahAccess()) return viewPending();
-    if (dawrahOnly()) {
-      var dEl = shell(name === 'profile' ? 'profile' : 'dawrah');
-      try { await (name === 'profile' ? viewProfile(dEl) : viewDawrah(dEl, name === 'dawrah' ? parts.slice(1) : [])); }
-      catch (e) { view(dEl, errorBox(e, true)); }
+    if (S.me.status === 'inactive' && !dawrahAccess()) return viewInactive();
+    if (!inIslamiyyah() && !dawrahAccess()) return viewPending();
+
+    var el;
+    if (name === 'profile') {
+      var prog = S.prog === 'dawrah' && dawrahAccess() ? 'dawrah' : inIslamiyyah() ? 'islamiyyah' : 'dawrah';
+      el = shell(prog, 'profile');
+      try { viewProfile(el); } catch (e) { view(el, errorBox(e, true)); }
       return;
     }
+    if (name === 'dawrah') {
+      if (!dawrahAccess()) return go(homeHash());
+      S.prog = 'dawrah';
+      var sub = parts[1] || '', d = S.dawrah;
+      var cur = !d.admin ? '' : sub === '' || sub === 'student' ? 'dawrah'
+        : sub === 'classes' || sub === 'new' || sub === 'edit' || (sub === 'class' && !d.student) ? 'dawrah/classes'
+        : sub === 'exam-setup' ? 'dawrah/exam-setup' : sub === 'settings' ? 'dawrah/settings' : 'dawrah/mine';
+      el = shell('dawrah', cur);
+      try { await viewDawrah(el, parts.slice(1)); } catch (e) { view(el, errorBox(e, true)); }
+      return;
+    }
+    // Islamiyyah
+    if (!inIslamiyyah()) return go('#/dawrah');
     var views = {
-      '': viewDashboard, dashboard: viewDashboard, quran: viewQuran, library: viewLibrary, classes: viewClasses, profile: viewProfile,
+      dashboard: viewDashboard, quran: viewQuran, arabic: viewArabic, classes: viewClasses, library: viewLibrary,
       teach: viewTeach, student: viewStudent, notices: viewNotices,
-      admin: viewAdmin, members: viewMembers, member: viewMember, groups: viewGroups, dawrah: viewDawrah,
-      login: viewDashboard, signup: viewDashboard, forgot: viewDashboard
+      admin: viewAdmin, members: viewMembers, member: viewMember, groups: viewGroups
     };
-    var fn = views[name] || viewDashboard;
-    if ((fn === viewTeach || fn === viewStudent || fn === viewNotices) && !isStaff()) fn = viewDashboard;
-    if ((fn === viewAdmin || fn === viewMembers || fn === viewMember || fn === viewGroups) && !isAdmin()) fn = viewDashboard;
-    if (fn === viewDawrah && !dawrahAccess()) fn = viewDashboard;
-    var el = shell(name);
-    try { await fn(el, parts.slice(1)); }
-    catch (e) { view(el, errorBox(e, true)); }
+    var ok = views[name] &&
+      (STUDENT_VIEWS.indexOf(name) < 0 || S.me.role === 'student') &&
+      (STAFF_VIEWS.indexOf(name) < 0 || isStaff()) &&
+      (ADMIN_VIEWS.indexOf(name) < 0 || isAdmin());
+    if (!ok) return go(homeHash());
+    S.prog = 'islamiyyah';
+    var tab = name === 'member' ? 'members'
+      : name === 'student' ? (isAdmin() && h.indexOf('from=admin') > 0 ? 'members' : 'teach') : name;
+    el = shell('islamiyyah', tab);
+    try { await views[name](el, parts.slice(1)); } catch (e) { view(el, errorBox(e, true)); }
   }
 
   root.addEventListener('click', async function (ev) {
@@ -562,6 +606,8 @@
     S.me = await run(S.sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle());
     // Dawrah access; if the Dawrah part of the database is not set up yet, carry on without it.
     try { S.dawrah = S.me ? await run(S.sb.rpc('dawrah_me')) : null; } catch (e) { S.dawrah = null; }
+    S.teaches = 0;
+    if (isStaff()) { try { S.teaches = await count(S.sb.from('group_teachers').select('group_id', { count: 'exact', head: true }).eq('teacher_id', S.me.id)); } catch (e) { S.teaches = 0; } }
     return S.me;
   }
 
@@ -598,15 +644,23 @@
       var d = await run(S.sb.auth.signInWithPassword({ email: v.email, password: v.password }));
       S.user = d.user;
       await loadMe();
-      go('#/dashboard');
+      go(homeHash());
     });
   }
 
-  function viewSignup() {
-    authFrame('Create your account', 'Sign up once for the Islamiyyah and the Dawrah. Registered for the Dawrah? Use the same email you used on the registration form.', html`
+  function viewSignup(preset) {
+    var pre = preset === 'dawrah' ? 'dawrah' : preset === 'islamiyyah' ? 'islamiyyah' : '';
+    var ck = function (v) { return raw(pre === v ? ' checked' : ''); };
+    authFrame('Create your account', 'One account for the AMSC Islamiyyah and the Dawrah.', html`
       <form class="form form--plain pt-form" id="f-signup" novalidate>
+        <fieldset class="field pt-choice pt-choice--list"><legend>What are you signing up for?</legend>
+          <label><input type="radio" name="programme" value="islamiyyah" required${ck('islamiyyah')}> Islamiyyah classes <span class="pt-meta">(weekends)</span></label>
+          <label><input type="radio" name="programme" value="dawrah"${ck('dawrah')}> Dawrah <span class="pt-meta">(${DW.title || 'Dawratul-Hadith'})</span></label>
+          <label><input type="radio" name="programme" value="both"> Both</label>
+        </fieldset>
         <div class="field"><label for="su-name">Full name</label><input id="su-name" name="full_name" autocomplete="name" required minlength="2" maxlength="120"></div>
-        <div class="field"><label for="su-email">Email</label><input id="su-email" name="email" type="email" autocomplete="email" required></div>
+        <div class="field"><label for="su-email">Email</label><input id="su-email" name="email" type="email" autocomplete="email" required aria-describedby="su-email-h">
+          <p class="pt-meta" id="su-email-h">For the Dawrah, use the same email you put on the registration form.</p></div>
         <fieldset class="field pt-choice"><legend>Are you a brother or a sister?</legend>
           <label><input type="radio" name="wing" value="brothers" required> Brother</label>
           <label><input type="radio" name="wing" value="sisters"> Sister</label>
@@ -626,6 +680,7 @@
       <p class="pt-auth__links">Already have an account? <a href="#/login">Log in</a></p>`);
     var f = $('#f-signup'); wirePw(f);
     onSubmit(f, async function (v) {
+      if (['islamiyyah', 'dawrah', 'both'].indexOf(v.programme) < 0) throw new Error('Choose what you are signing up for.');
       if (!v.full_name || v.full_name.length < 2) throw new Error('Enter your full name.');
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email || '')) throw new Error('Enter a valid email address.');
       if (v.wing !== 'brothers' && v.wing !== 'sisters') throw new Error('Choose brother or sister.');
@@ -634,7 +689,7 @@
       if (v.consent !== 'yes') throw new Error('Tick the box to agree to how your details are used.');
       var d = await run(S.sb.auth.signUp({
         email: v.email, password: v.password,
-        options: { data: { portal: 'islamiyyah', full_name: v.full_name, wing: v.wing, phone: v.phone || '', department: v.department || '', level: v.level || '', consent: true } }
+        options: { data: { portal: 'islamiyyah', programme: v.programme, full_name: v.full_name, wing: v.wing, phone: v.phone || '', department: v.department || '', level: v.level || '', consent: true } }
       }));
       if (d.user && d.user.identities && d.user.identities.length === 0) throw new Error('An account with this email already exists. Log in instead.');
       if (!d.session) {
@@ -643,7 +698,7 @@
       }
       S.user = d.user;
       await loadMe();
-      go('#/dashboard');
+      go(homeHash());
     });
   }
 
@@ -688,28 +743,42 @@
       }
       await loadMe();
       toast('Your new password is saved.');
-      go('#/dashboard');
+      go(homeHash());
     });
   }
 
   function viewPending() {
-    var m = S.me;
-    authFrame('Your account is waiting for approval', null, html`
-      <p>Jazakallahu khairan for signing up, ${firstName(m.full_name)}. For the Islamiyyah, the committee will approve your account and place you in your classes, usually at the next weekend class.</p>
-      <p>Registered for the Dawrah? You get in as soon as the Dawrah team adds the registrations. Make sure you signed up with the same email you put on the registration form.</p>
+    var m = S.me, dawrahSide = !m.joins_islamiyyah;
+    authFrame(dawrahSide ? 'You are signed up for the Dawrah' : 'Your account is waiting for approval', null, html`
+      ${dawrahSide
+        ? html`<p>Jazakallahu khairan, ${firstName(m.full_name)}. Your Dawrah page opens as soon as the Dawrah team adds the registration list.</p>
+            <p>Make sure <strong>${m.email}</strong> is the same email you put on the Dawrah registration form.</p>`
+        : html`<p>Jazakallahu khairan for signing up, ${firstName(m.full_name)}. The Islamiyyah committee will approve your account and place you in your classes, usually at the next weekend class.</p>
+            <p class="pt-meta">Also registered for the Dawrah? Your Dawrah page opens once the Dawrah team adds the registrations.</p>`}
       <dl class="pt-dl">
         <div><dt>Name</dt><dd>${m.full_name}</dd></div>
         <div><dt>Email</dt><dd>${m.email}</dd></div>
-        <div><dt>Class</dt><dd>${m.wing ? WING[m.wing] : 'Not chosen'}</dd></div>
-        ${m.department ? html`<div><dt>Department</dt><dd>${m.department}${m.level ? ', ' + m.level : ''}</dd></div>` : ''}
+        <div><dt>Brother or sister</dt><dd>${m.wing === 'sisters' ? 'Sister' : m.wing === 'brothers' ? 'Brother' : 'Not chosen'}</dd></div>
       </dl>
       <button type="button" class="btn btn--blue pt-wide" data-refresh>Check again</button>
-      ${helpLink('Ask the admin to approve you on WhatsApp')}
+      ${dawrahSide ? dwHelp() : helpLink('Ask the admin to approve you on WhatsApp')}
+      ${dawrahSide ? html`<p class="pt-auth__links"><button type="button" class="pt-textbtn" data-join>I also want to join the Islamiyyah classes</button></p>` : ''}
       <p class="pt-auth__links"><button type="button" class="pt-textbtn" data-logout>Log out</button></p>`);
     $('[data-refresh]').addEventListener('click', async function (ev) {
       busy(ev.currentTarget, true, 'Checking…');
-      try { await loadMe(); if (S.me && S.me.status === 'pending') { busy(ev.currentTarget, false); toast('Not approved yet. Please check again later.'); } else route(); }
-      catch (e) { busy(ev.currentTarget, false); toast(friendly(e), 'error'); }
+      try {
+        await loadMe();
+        if (S.me && !inIslamiyyah() && !dawrahAccess()) { busy(ev.currentTarget, false); toast('Not open yet. Please check again later.'); }
+        else go(homeHash());
+      } catch (e) { busy(ev.currentTarget, false); toast(friendly(e), 'error'); }
+    });
+    var j = $('[data-join]');
+    if (j) j.addEventListener('click', async function () {
+      busy(j, true, 'Sending…');
+      try {
+        var rows = await run(S.sb.from('profiles').update({ joins_islamiyyah: true }).eq('id', S.me.id).select('*'));
+        S.me = rows[0]; toast('Done. The Islamiyyah committee will review your sign-up.'); route();
+      } catch (e) { busy(j, false); toast(friendly(e), 'error'); }
     });
   }
   function viewInactive() {
@@ -731,132 +800,146 @@
     root.setAttribute('aria-busy', 'false');
   }
 
-  // ===================================================================== student: dashboard
+  // ===================================================================== student: home
   async function myGroups() {
     var ids = [S.me.quran_group, S.me.arabic_group].filter(Boolean);
     if (!ids.length) return {};
     var gs = await run(S.sb.from('groups').select('*').in('id', ids));
     var m = {}; gs.forEach(function (g) { m[g.id] = g; }); return m;
   }
+  // Arabic class progress, recorded by the class's teacher as lessons completed in the textbook.
+  function arabicProgress(g) {
+    if (!g) return empty('Not placed in an Arabic class yet', 'The Islamiyyah committee will place you after your level check.');
+    if (g.current_lesson == null) return html`<p>Your teacher will record your class’s progress here.</p>`;
+    var tot = g.total_lessons, cur = g.current_lesson;
+    return html`<div class="pt-hero"><span class="pt-hero__v">${cur}${tot ? html`<small>/${tot}</small>` : ''}</span><span class="pt-hero__s">${plural(cur, 'lesson')} completed${g.book ? ' · ' + g.book : ''}</span></div>
+      ${tot ? bar(cur / tot, 'Arabic class progress') : ''}
+      <p class="pt-meta">Updated by your teacher on ${fmtDate(g.progress_at)}</p>`;
+  }
 
   async function viewDashboard(el) {
     var mine = token();
-    view(el, loading('Loading your dashboard…'), false);
+    view(el, loading('Loading…'), false);
     var res = await Promise.all([
       myGroups(),
-      run(S.sb.rpc('my_teachers')),
-      run(S.sb.from('announcements').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(5)),
-      run(S.sb.from('quran_logs').select('*').eq('student_id', S.me.id).order('log_date', { ascending: false }).limit(2000)),
-      run(S.sb.from('assessments').select('*').eq('student_id', S.me.id).order('assessed_on', { ascending: false }).limit(3)),
-      isAdmin() ? count(S.sb.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending')) : Promise.resolve(0)
+      run(S.sb.from('announcements').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(4)),
+      run(S.sb.from('quran_logs').select('kind,surah,from_ayah,to_ayah,log_date,verified').eq('student_id', S.me.id).limit(3000))
     ]);
     if (!mine()) return;
-    var groups = res[0], teachers = res[1] || [], notices = res[2], logs = res[3], assess = res[4], pending = res[5];
-    var pr = progress(logs), nx = nextSession();
-    var teacherNames = function (gid) {
-      var n = teachers.filter(function (t) { return t.group_id === gid; }).map(function (t) { return t.full_name; });
-      return n.length ? n.join(', ') : 'Teacher to be assigned';
-    };
-    var classRow = function (label, level, gid, levels) {
-      var g = gid && groups[gid];
-      return html`<li><span class="pt-class__k">${label}</span>
-        <span class="pt-class__v">${g ? g.name : 'Not placed yet'}${level ? html` · ${levels[level]}` : ''}</span>
-        ${g ? html`<span class="pt-class__s">${teacherNames(g.id)}</span>` : html`<span class="pt-class__s">The committee will place you soon.</span>`}</li>`;
-    };
+    var groups = res[0], notices = res[1], pr = progress(res[2]), nx = nextSession();
+    var ag = S.me.arabic_group && groups[S.me.arabic_group];
     view(el, html`
       <h2 class="pt-h">Assalamu alaykum, ${firstName(S.me.full_name)}</h2>
-      ${pending ? html`<a class="pt-alert" href="#/admin">${icon('bell')}<span><strong>${plural(pending, 'account')} waiting for approval.</strong> Review them in Admin.</span></a>` : ''}
+      <section class="pt-card pt-card--blue" aria-labelledby="d-next">
+        <h3 id="d-next">${icon('clock')}Next class</h3>
+        ${nx ? html`<p class="pt-next__when">${nx.when}, ${t12(nx.s.start)} to ${t12(nx.s.end)}</p><p class="pt-next__what">${nx.s.title}</p><p class="pt-next__where">${DATA.venue}</p>` : html`<p>No classes scheduled.</p>`}
+        <a class="pt-cardlink" href="#/classes">Timetable, teachers and classmates</a>
+      </section>
       <div class="pt-grid">
-        <section class="pt-card pt-card--blue" aria-labelledby="d-next">
-          <h3 id="d-next">${icon('clock')}Next class</h3>
-          ${nx ? html`<p class="pt-next__when">${nx.when}, ${t12(nx.s.start)} to ${t12(nx.s.end)}</p><p class="pt-next__what">${nx.s.title}</p><p class="pt-next__where">${DATA.venue}</p>` : html`<p>No classes scheduled.</p>`}
-          <a class="pt-cardlink" href="#/classes">Full timetable</a>
+        <section class="pt-card" aria-labelledby="d-q">
+          <h3 id="d-q">${icon('quran')}Qur’an</h3>
+          <div class="pt-hero"><span class="pt-hero__v">${(pr.pct * 100).toFixed(1)}%</span><span class="pt-hero__s">memorised · about ${pr.juzEquiv.toFixed(1)} juz</span></div>
+          ${bar(pr.pct, 'Qur’an memorised')}
+          <p class="pt-meta">Last record: ${pr.lastDate ? fmtDate(pr.lastDate) : 'none yet'}</p>
+          <a class="pt-cardlink" href="#/quran">My Qur’an record</a>
         </section>
-        <section class="pt-card" aria-labelledby="d-classes">
-          <h3 id="d-classes">${icon('users')}My classes</h3>
-          <ul class="pt-class">
-            ${classRow('Qur’an', S.me.quran_level, S.me.quran_group, QLEVEL)}
-            ${classRow('Arabic', S.me.arabic_level, S.me.arabic_group, LEVEL)}
-            <li><span class="pt-class__k">Islamic books</span><span class="pt-class__v">Sunday, all students together</span></li>
-          </ul>
+        <section class="pt-card" aria-labelledby="d-a">
+          <h3 id="d-a">${icon('book')}Arabic</h3>
+          ${arabicProgress(ag)}
+          <a class="pt-cardlink" href="#/arabic">My Arabic studies</a>
         </section>
-        <section class="pt-card pt-card--wide" aria-labelledby="d-quran">
-          <h3 id="d-quran">${icon('quran')}Qur’an progress</h3>
-          <div class="pt-hero"><span class="pt-hero__v">${(pr.pct * 100).toFixed(1)}%</span><span class="pt-hero__s">of the Qur’an memorised · ${fmtNum(pr.memorised)} ayahs · about ${pr.juzEquiv.toFixed(1)} juz</span></div>
-          ${bar(pr.pct, 'Overall Qur’an memorisation progress')}
-          <p class="pt-meta">Last record: ${pr.lastDate ? fmtDate(pr.lastDate) : 'none yet'} · Revision in the last 30 days: ${plural(pr.revision30, 'ayah')}</p>
-          <a class="btn btn--sm btn--blue" href="#/quran">Record progress</a>
-        </section>
-        <section class="pt-card pt-card--wide" aria-labelledby="d-notices">
-          <h3 id="d-notices">${icon('bell')}Announcements</h3>
-          ${noticeList(notices)}
-        </section>
-        <section class="pt-card" aria-labelledby="d-fb">
-          <h3 id="d-fb">${icon('star')}Latest feedback</h3>
-          ${assess.length ? assessmentList(assess.slice(0, 1)) : empty('No feedback yet', 'Assessments from your teachers will appear here.')}
-          <a class="pt-cardlink" href="#/quran#feedback">All feedback</a>
-        </section>
-        <section class="pt-card" aria-labelledby="d-lib">
-          <h3 id="d-lib">${icon('book')}Library</h3>
-          <p>Books, notes and audio for Qur’an, Arabic, Aqeedah, Fiqh and Seerah.</p>
-          <a class="pt-cardlink" href="#/library">Open the library</a>
-        </section>
-      </div>`);
+      </div>
+      <section class="pt-card" aria-labelledby="d-notices">
+        <h3 id="d-notices">${icon('bell')}Announcements</h3>
+        ${noticeList(notices)}
+      </section>`);
   }
 
   // ===================================================================== student: Qur'an
-  async function viewQuran(el) {
-    var mine = token();
+  async function viewQuran(el, args) {
+    var tab = (args && args[0]) || '', mine = token();
     view(el, loading('Loading your Qur’an record…'), false);
     var res = await Promise.all([
-      run(S.sb.from('quran_logs').select('*').eq('student_id', S.me.id).order('log_date', { ascending: false }).order('created_at', { ascending: false }).limit(2000)),
-      run(S.sb.from('assessments').select('*').eq('student_id', S.me.id).order('assessed_on', { ascending: false }))
+      run(S.sb.from('quran_logs').select('*').eq('student_id', S.me.id).order('log_date', { ascending: false }).order('created_at', { ascending: false }).limit(3000)),
+      run(S.sb.from('assessments').select('*').eq('student_id', S.me.id).eq('track', 'quran').order('assessed_on', { ascending: false }))
     ]);
     if (!mine()) return;
-    var logs = res[0], assess = res[1];
-    var pr = progress(logs);
-    var qa = assess.filter(function (a) { return a.track === 'quran'; });
+    var logs = res[0], qa = res[1], pr = progress(logs);
+    var body;
+    if (tab === 'history') body = html`<section class="pt-card" aria-labelledby="q-hist"><h3 id="q-hist">History</h3>
+        ${logList(logs, { emptyText: 'Press “Record progress” to add what you memorised or revised.' })}</section>`;
+    else if (tab === 'feedback') body = html`<section class="pt-card" aria-labelledby="q-fb"><h3 id="q-fb">${icon('star')}Teacher feedback</h3>${assessmentList(qa)}</section>`;
+    else body = html`<div class="pt-grid">
+        <section class="pt-card" aria-labelledby="q-juz"><h3 id="q-juz">Progress by juz</h3>${juzGrid(pr)}</section>
+        <section class="pt-card" aria-labelledby="q-surahs"><h3 id="q-surahs">Surahs memorised</h3>
+          ${pr.bySurah.length ? html`<ul class="pt-surahs">${pr.bySurah.map(function (x) {
+            return html`<li><span class="pt-surahs__n">${x.n}. ${surahName(x.n)}</span><span class="pt-surahs__c">${x.done}/${x.total}</span>${bar(x.done / x.total, surahName(x.n) + ' progress', 'pt-bar--thin')}</li>`;
+          })}</ul>` : empty('None yet', 'Surahs appear here as you record them.')}</section>
+      </div>
+      <section class="pt-card" aria-labelledby="q-chart"><h3 id="q-chart">Progress over time</h3>${weeklyChart(weekly(logs))}</section>`;
     view(el, html`
-      <h2 class="pt-h">My Qur’an progress</h2>
+      <div class="pt-headrow"><h2 class="pt-h">My Qur’an</h2><button type="button" class="btn btn--sm btn--blue" data-add aria-expanded="false" aria-controls="q-add">${icon('plus')}Record progress</button></div>
+      <section class="pt-card" id="q-add" hidden aria-labelledby="q-add-h">
+        <h3 id="q-add-h">Record your progress</h3>
+        <p class="pt-meta">Record what you memorised or revised. Your teacher verifies it at class.</p>
+        ${logForm('f-log', false)}
+      </section>
       <section class="pt-card" aria-label="Summary">${quranSummary(pr, S.me.quran_level, qa[0])}</section>
-      <div class="pt-grid">
-        <section class="pt-card" aria-labelledby="q-add">
-          <h3 id="q-add">${icon('plus')}Record your progress</h3>
-          <p class="pt-meta">Your teacher can verify records at class.</p>
-          ${logForm('f-log', false)}
-        </section>
-        <section class="pt-card" aria-labelledby="q-juz">
-          <h3 id="q-juz">Progress by juz</h3>
-          ${juzGrid(pr)}
-        </section>
-        <section class="pt-card pt-card--wide" aria-labelledby="q-chart">
-          <h3 id="q-chart">Progress over time</h3>
-          ${weeklyChart(weekly(logs))}
-        </section>
-        ${pr.bySurah.length ? html`<section class="pt-card pt-card--wide" aria-labelledby="q-surahs">
-          <h3 id="q-surahs">Surahs you have memorised</h3>
-          <ul class="pt-surahs">${pr.bySurah.map(function (s) {
-            return html`<li><span class="pt-surahs__n">${s.n}. ${surahName(s.n)}</span><span class="pt-surahs__c">${s.done}/${s.total}</span>${bar(s.done / s.total, surahName(s.n) + ' progress', 'pt-bar--thin')}</li>`;
-          })}</ul></section>` : ''}
-        <section class="pt-card pt-card--wide" aria-labelledby="q-hist" id="history">
-          <h3 id="q-hist">History</h3>
-          ${logList(logs, { emptyText: 'Use the form above to record what you memorised or revised.' })}
-        </section>
-        <section class="pt-card pt-card--wide" aria-labelledby="feedback-h" id="feedback">
-          <h3 id="feedback-h">Teacher assessments and comments</h3>
-          ${assessmentList(assess)}
-        </section>
-      </div>`);
+      ${subnav('quran', [['', 'Overview'], ['history', 'History (' + logs.length + ')'], ['feedback', 'Teacher feedback (' + qa.length + ')']], tab, 'Qur’an record')}
+      ${body}`);
+    var addBtn = $('[data-add]', el), panel = $('#q-add', el);
+    addBtn.addEventListener('click', function () {
+      panel.hidden = !panel.hidden; addBtn.setAttribute('aria-expanded', String(!panel.hidden));
+      if (!panel.hidden) $('#f-log-kind', el).focus();
+    });
     var f = $('#f-log', el); wireLogForm(f);
     onSubmit(f, async function (v) {
       var row = readLog(v); row.student_id = S.me.id; row.verified = false;
       await run(S.sb.from('quran_logs').insert(row));
       toast('Saved: ' + rangeText(row) + '.');
-      S.focusNext = false; viewQuran(el);
+      S.focusNext = false; viewQuran(el, args);
     });
-    wireLogList(el, function () { S.focusNext = false; viewQuran(el); });
+    wireLogList(el, function () { S.focusNext = false; viewQuran(el, args); });
     wireChart(el);
-    if (location.hash.indexOf('#feedback') > 0) { var fb = $('#feedback', el); if (fb) fb.scrollIntoView(); }
+  }
+
+  // ===================================================================== student: Arabic
+  async function viewArabic(el) {
+    var mine = token();
+    view(el, loading('Loading your Arabic studies…'), false);
+    var res = await Promise.all([
+      myGroups(), run(S.sb.rpc('my_teachers')),
+      run(S.sb.from('assessments').select('*').eq('student_id', S.me.id).eq('track', 'arabic').order('assessed_on', { ascending: false }))
+    ]);
+    if (!mine()) return;
+    var g = S.me.arabic_group && res[0][S.me.arabic_group], aa = res[2];
+    var ts = g ? (res[1] || []).filter(function (t) { return t.group_id === g.id; }).map(function (t) { return t.full_name; }) : [];
+    var bk = DATA.arabicText;
+    view(el, html`
+      <h2 class="pt-h">My Arabic studies</h2>
+      <section class="pt-card" aria-labelledby="ar-p">
+        <h3 id="ar-p">${icon('star')}Class progress</h3>
+        ${g ? html`<p class="pt-ar-class"><strong>${g.name}</strong> · ${LEVEL[S.me.arabic_level || g.level]} · ${ts.length ? 'Teacher: ' + ts.join(', ') : 'Teacher to be assigned'}</p>` : ''}
+        ${arabicProgress(g)}
+      </section>
+      <div class="pt-grid">
+        <section class="pt-card" aria-labelledby="ar-b">
+          <h3 id="ar-b">${icon('book')}Textbook</h3>
+          ${bk && bk.file ? html`<p><span lang="ar" dir="rtl" class="pt-ar">${bk.ar}</span><br>${bk.en}, Book 1${bk.pages ? ' · ' + bk.pages + ' pages' : ''}</p>
+            <a class="btn btn--sm btn--blue" href="${bk.file}" download>${icon('download')}Download the PDF<span class="sr-only"> of ${bk.en}</span></a>` : html`<p>Your teacher will share the textbook.</p>`}
+        </section>
+        <section class="pt-card" aria-labelledby="ar-w">
+          <h3 id="ar-w">${icon('calendar')}When</h3>
+          ${DATA.timetable.filter(function (x) { return /arabic/i.test(x.title); }).map(function (x) {
+            return html`<p><strong>${DAYNAMES[x.day]}s, ${t12(x.start)} to ${t12(x.end)}</strong></p>`;
+          })}
+          <p class="pt-meta">At the ${DATA.venue}, grouped by Arabic level.</p>
+        </section>
+      </div>
+      <section class="pt-card" aria-labelledby="ar-fb">
+        <h3 id="ar-fb">Teacher feedback</h3>
+        ${assessmentList(aa)}
+      </section>`);
   }
 
   // ===================================================================== library
@@ -998,71 +1081,61 @@
     });
   }
 
-  // ===================================================================== classes
+  // ===================================================================== student: my class
   async function viewClasses(el) {
     var mine = token();
-    view(el, loading('Loading your classes…'), false);
+    view(el, loading('Loading your class…'), false);
     var res = await Promise.all([myGroups(), run(S.sb.rpc('my_teachers')), run(S.sb.rpc('my_classmates'))]);
     if (!mine()) return;
     var groups = res[0], teachers = res[1] || [], mates = res[2] || [];
     var today = lagosNow().getDay();
-    var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    var groupCard = function (label, gid, level, levels) {
-      var g = gid && groups[gid];
-      if (!g) return html`<div class="pt-group"><h4>${label}</h4><p class="pt-meta">You have not been placed in a ${label} group yet.</p></div>`;
+    var groupCard = function (track, label, gid, level, levels) {
+      var g = gid && groups[gid], id = 'c-' + track;
+      if (!g) return html`<section class="pt-card" aria-labelledby="${id}"><h3 id="${id}">${icon(track === 'quran' ? 'quran' : 'book')}${label} class</h3>
+        ${empty('Not placed yet', 'The Islamiyyah committee will place you in a ' + label + ' class soon.')}</section>`;
       var ts = teachers.filter(function (t) { return t.group_id === g.id; });
-      return html`<div class="pt-group"><h4>${label}: ${g.name}</h4>
-        <p class="pt-meta">${levels[level || g.level]} · ${WING[g.wing]}</p>
-        <p>${ts.length ? 'Teacher' + (ts.length > 1 ? 's' : '') + ': ' + ts.map(function (t) { return t.full_name; }).join(', ') : 'Teacher to be assigned'}</p></div>`;
+      var ms = mates.filter(function (m) { return m.group_name === g.name && m.track === track; });
+      return html`<section class="pt-card" aria-labelledby="${id}">
+        <h3 id="${id}">${icon(track === 'quran' ? 'quran' : 'book')}${label} class</h3>
+        <p class="pt-classname"><strong>${g.name}</strong><span class="pt-meta">${levels[level || g.level]} · ${WING[g.wing]}</span></p>
+        <h4 class="pt-sub">${ts.length > 1 ? 'Teachers' : 'Teacher'}</h4>
+        ${ts.length ? html`<ul class="pt-people">${ts.map(function (t) {
+          return html`<li><span class="pt-mono" aria-hidden="true">${initials(t.full_name)}</span><div><strong>${t.full_name}</strong>
+            ${t.subjects ? html`<span class="pt-meta">${t.subjects}</span>` : ''}${t.bio ? html`<p>${t.bio}</p>` : ''}</div></li>`;
+        })}</ul>` : html`<p class="pt-meta">To be assigned.</p>`}
+        <details class="pt-details pt-mates"><summary>Classmates (${ms.length})</summary>
+          ${ms.length ? html`<ul class="pt-chips">${ms.map(function (m) { return html`<li>${m.full_name}</li>`; })}</ul>` : html`<p class="pt-meta">No classmates listed yet.</p>`}
+        </details>
+      </section>`;
     };
-    var uniqTeachers = [];
-    teachers.forEach(function (t) {
-      var u = uniqTeachers.find(function (x) { return x.teacher_id === t.teacher_id; });
-      if (u) u.groups.push(t.group_name); else uniqTeachers.push(Object.assign({}, t, { groups: [t.group_name] }));
-    });
-    var byGroup = {};
-    mates.forEach(function (m) { (byGroup[TRACK[m.track] + ': ' + m.group_name] = byGroup[TRACK[m.track] + ': ' + m.group_name] || []).push(m.full_name); });
     view(el, html`
-      <h2 class="pt-h">Classes</h2>
+      <h2 class="pt-h">My class</h2>
+      <div class="pt-grid">
+        ${groupCard('quran', 'Qur’an', S.me.quran_group, S.me.quran_level, QLEVEL)}
+        ${groupCard('arabic', 'Arabic', S.me.arabic_group, S.me.arabic_level, LEVEL)}
+      </div>
       <section class="pt-card" aria-labelledby="c-tt">
         <h3 id="c-tt">${icon('calendar')}Weekend timetable</h3>
         <table class="pt-table"><caption class="sr-only">Islamiyyah weekend timetable</caption>
           <thead><tr><th scope="col">Day</th><th scope="col">Time</th><th scope="col">Session</th></tr></thead>
-          <tbody>${DATA.timetable.map(function (s) {
-            return html`<tr${raw(s.day === today ? ' class="is-today"' : '')}><td data-label="Day"><span class="pt-td">${DAYS[s.day]}${s.day === today ? html` ${pill('Today', 'yellow')}` : ''}</span></td><td data-label="Time"><span class="pt-td">${t12(s.start)} to ${t12(s.end)}</span></td><td data-label="Session"><span class="pt-td">${s.title}<span class="pt-meta"> ${s.note}</span></span></td></tr>`;
+          <tbody>${DATA.timetable.map(function (x) {
+            return html`<tr${raw(x.day === today ? ' class="is-today"' : '')}><td data-label="Day"><span class="pt-td">${DAYNAMES[x.day]}${x.day === today ? html` ${pill('Today', 'yellow')}` : ''}</span></td><td data-label="Time"><span class="pt-td">${t12(x.start)} to ${t12(x.end)}</span></td><td data-label="Session"><span class="pt-td">${x.title}<span class="pt-meta"> ${x.note}</span></span></td></tr>`;
           })}</tbody></table>
-        <p class="pt-meta">${icon('clock')}All classes hold at the ${DATA.venue}.</p>
+        <p class="pt-meta">All classes hold at the ${DATA.venue}. Classmates are shown by name only.</p>
       </section>
-      <div class="pt-grid">
-        <section class="pt-card" aria-labelledby="c-groups">
-          <h3 id="c-groups">${icon('users')}My groups</h3>
-          ${groupCard('Qur’an', S.me.quran_group, S.me.quran_level, QLEVEL)}
-          ${groupCard('Arabic', S.me.arabic_group, S.me.arabic_level, LEVEL)}
-          ${DATA.arabicText && DATA.arabicText.file ? html`<div class="pt-group"><h4>Arabic textbook</h4><p><span lang="ar" dir="rtl" class="pt-ar">${DATA.arabicText.ar}</span> ${DATA.arabicText.en} <a href="${DATA.arabicText.file}" download>Download PDF<span class="sr-only"> of ${DATA.arabicText.en}</span></a></p></div>` : ''}
-          <div class="pt-group"><h4>Islamic book studies (Sunday)</h4><p class="pt-meta">All students study together.</p>
-            <ul class="pt-books">${DATA.books.map(function (b) {
-              return html`<li><span lang="ar" dir="rtl" class="pt-ar">${b.ar}</span> ${b.en}: ${b.about}${b.file ? html` <a href="${b.file}" download>Download PDF<span class="sr-only"> of ${b.en}</span></a>` : ''}</li>`;
-            })}</ul></div>
-        </section>
-        <section class="pt-card" aria-labelledby="c-teachers">
-          <h3 id="c-teachers">${icon('star')}My teachers</h3>
-          ${uniqTeachers.length ? html`<ul class="pt-people">${uniqTeachers.map(function (t) {
-            return html`<li><span class="pt-mono" aria-hidden="true">${initials(t.full_name)}</span><div><strong>${t.full_name}</strong>
-              <span class="pt-meta">${t.subjects || TRACK[t.track]} · ${t.groups.join(', ')}</span>${t.bio ? html`<p>${t.bio}</p>` : ''}</div></li>`;
-          })}</ul>` : empty('No teachers listed yet', 'Your teachers will appear here once you are placed in a group.')}
-        </section>
-        <section class="pt-card pt-card--wide" aria-labelledby="c-mates">
-          <h3 id="c-mates">${icon('users')}Classmates</h3>
-          ${Object.keys(byGroup).length ? Object.keys(byGroup).map(function (k) {
-            return html`<h4 class="pt-sub">${k}</h4><ul class="pt-chips">${byGroup[k].map(function (n) { return html`<li>${n}</li>`; })}</ul>`;
-          }) : empty('No classmates to show yet', 'Classmates in your groups appear here by name only.')}
-        </section>
-      </div>`);
+      <section class="pt-card" aria-labelledby="c-books">
+        <h3 id="c-books">${icon('book')}Sunday book studies</h3>
+        <p class="pt-meta">All students study these books together on Sundays.</p>
+        <ul class="pt-booklist">${DATA.books.map(function (b) {
+          return html`<li><div><span lang="ar" dir="rtl" class="pt-ar">${b.ar}</span><strong>${b.en}${b.note && b.note.indexOf('Part') === 0 ? ', ' + b.note : ''}</strong><span class="pt-meta">${b.subject}${b.pages ? ' · ' + b.pages + ' pages' : ''}</span></div>
+            ${b.file ? html`<a class="btn btn--sm btn--line" href="${b.file}" download>${icon('download')}PDF<span class="sr-only"> of ${b.en}</span></a>` : ''}</li>`;
+        })}</ul>
+      </section>`);
   }
 
   // ===================================================================== profile
   function viewProfile(el) {
-    var m = S.me, staff = m.role !== 'student' && !dawrahOnly(), dOnly = dawrahOnly();
+    var m = S.me, staff = inIslamiyyah() && m.role !== 'student', dOnly = dawrahOnly();
     view(el, html`
       <h2 class="pt-h">My profile</h2>
       <div class="pt-grid">
@@ -1070,9 +1143,10 @@
           <h3 id="p-acc">Account</h3>
           <dl class="pt-dl">
             <div><dt>Email</dt><dd>${m.email}</dd></div>
-            ${dOnly ? html`<div><dt>Programme</dt><dd>${S.dawrah.term.title}</dd></div>` : html`<div><dt>Role</dt><dd>${ROLE[m.role]}</dd></div>`}
+            ${dOnly ? html`<div><dt>Programme</dt><dd>${S.dawrah.term.title}</dd></div>` : html`<div><dt>Role</dt><dd>${roleLabel('islamiyyah').split(' · ')[0]}</dd></div>`}
+            ${dawrahAccess() && !dOnly ? html`<div><dt>Dawrah</dt><dd>${S.dawrah.admin ? 'Admin' : 'Student'}, ${S.dawrah.term.title}</dd></div>` : ''}
             <div><dt>${dOnly ? 'Brother or sister' : 'Class'}</dt><dd>${m.wing ? (dOnly ? (m.wing === 'sisters' ? 'Sister' : 'Brother') : WING[m.wing]) : 'Not set'}</dd></div>
-            ${dOnly ? '' : html`<div><dt>Qur’an level</dt><dd>${m.quran_level ? QLEVEL[m.quran_level] : 'Not assigned'}</dd></div>
+            ${dOnly || staff ? '' : html`<div><dt>Qur’an level</dt><dd>${m.quran_level ? QLEVEL[m.quran_level] : 'Not assigned'}</dd></div>
             <div><dt>Arabic level</dt><dd>${m.arabic_level ? LEVEL[m.arabic_level] : 'Not assigned'}</dd></div>`}
             <div><dt>Member since</dt><dd>${fmtDate(m.created_at)}</dd></div>
           </dl>
@@ -1107,7 +1181,21 @@
           <p>Your details and records are visible only to you, your teachers and the portal admins. Classmates see your name only. To delete your account and records, message ${dOnly ? 'the Dawrah team' : 'the Islamiyyah admin'}.</p>
           ${dOnly ? dwHelp() : helpLink()}
         </section>
+        ${dOnly ? html`<section class="pt-card" aria-labelledby="p-isl">
+          <h3 id="p-isl">${icon('quran')}Islamiyyah classes</h3>
+          ${m.joins_islamiyyah ? html`<p>Your Islamiyyah sign-up is waiting for the committee’s approval.</p>`
+            : html`<p>The weekend Islamiyyah classes cover Qur’an, Arabic and Islamic books. Want to join?</p>
+              <button type="button" class="btn btn--sm btn--blue" data-join>I want to join the Islamiyyah</button>`}
+        </section>` : ''}
       </div>`);
+    var jb = $('[data-join]', el);
+    if (jb) jb.addEventListener('click', async function () {
+      busy(jb, true, 'Sending…');
+      try {
+        var rows = await run(S.sb.from('profiles').update({ joins_islamiyyah: true }).eq('id', m.id).select('*'));
+        S.me = rows[0]; toast('Done. The Islamiyyah committee will review your sign-up.'); S.focusNext = false; viewProfile(el);
+      } catch (e) { busy(jb, false); toast(friendly(e), 'error'); }
+    });
     onSubmit($('#f-prof', el), async function (v) {
       if (!v.full_name || v.full_name.length < 2) throw new Error('Enter your full name.');
       var row = { full_name: v.full_name, phone: v.phone || null, department: v.department || null, level: v.level || null };
@@ -1152,8 +1240,8 @@
     var unverified = d.logs.filter(function (l) { return !l.verified; });
     var logsBy = {}; d.logs.forEach(function (l) { (logsBy[l.student_id] = logsBy[l.student_id] || []).push(l); });
     view(el, html`
-      <h2 class="pt-h">Teaching</h2>
-      ${!d.groups.length ? empty('You have not been assigned a group yet', 'An admin assigns teachers to groups in Admin, Groups.', isAdmin() ? html`<a class="btn btn--sm btn--blue" href="#/groups">Manage groups</a>` : '') : ''}
+      <h2 class="pt-h">${isAdmin() ? 'My teaching' : 'My students'}</h2>
+      ${!d.groups.length ? empty('You have not been assigned a group yet', 'An admin assigns teachers to groups in Groups.', isAdmin() ? html`<a class="btn btn--sm btn--blue" href="#/groups">Manage groups</a>` : '') : ''}
       ${unverified.length ? html`<section class="pt-card" aria-labelledby="t-ver">
         <h3 id="t-ver">${icon('check')}Records to verify (${unverified.length})</h3>
         <p class="pt-meta">Students recorded these themselves. Verify them after you listen at class.</p>
@@ -1167,6 +1255,17 @@
         var members = d.students.filter(function (s) { return s.quran_group === g.id || s.arabic_group === g.id; });
         return html`<section class="pt-card" aria-labelledby="g-${g.id}">
           <div class="pt-headrow"><h3 id="g-${g.id}">${g.name}</h3><span class="pt-meta">${TRACK[g.track]} · ${(g.track === 'quran' ? QLEVEL : LEVEL)[g.level]} · ${WING[g.wing]}</span></div>
+          ${g.track === 'arabic' ? html`<details class="pt-details pt-progbox"><summary>Class progress: ${g.current_lesson == null ? 'not recorded yet' : (g.total_lessons ? g.current_lesson + ' of ' + g.total_lessons + ' lessons' : plural(g.current_lesson, 'lesson')) + ' completed'}</summary>
+            <form class="form form--plain pt-form" data-prog="${g.id}" novalidate>
+              <p class="pt-meta">Students see this on their Arabic page. Update it after each class.</p>
+              <div class="field--2">
+                <div class="field"><label for="pl-${g.id}">Lessons completed</label><input id="pl-${g.id}" name="lesson" type="number" inputmode="numeric" min="0" max="200" required value="${g.current_lesson == null ? '' : g.current_lesson}"></div>
+                <div class="field"><label for="pn-${g.id}">Lessons in the book <span class="opt">(optional)</span></label><input id="pn-${g.id}" name="total" type="number" inputmode="numeric" min="1" max="200" value="${g.total_lessons || ''}"></div>
+              </div>
+              <div class="field"><label for="pb-${g.id}">Book <span class="opt">(optional)</span></label><input id="pb-${g.id}" name="book" maxlength="120" value="${g.book || ''}" placeholder="For example: Durus al-Lughah, Book 1"></div>
+              <p class="form-error" role="alert" tabindex="-1" hidden></p>
+              <button class="btn btn--sm btn--blue" type="submit">Save progress</button>
+            </form></details>` : ''}
           ${members.length ? html`<table class="pt-table"><caption class="sr-only">Students in ${g.name}</caption>
             <thead><tr><th scope="col">Student</th>${g.track === 'quran' ? html`<th scope="col">Memorised</th><th scope="col">Last record</th>` : html`<th scope="col">Department</th>`}<th scope="col"><span class="sr-only">Open</span></th></tr></thead>
             <tbody>${members.map(function (s) {
@@ -1185,6 +1284,16 @@
         </section>`;
       })}`);
     wireLogList(el, function () { S.focusNext = false; viewTeach(el); });
+    $$('[data-prog]', el).forEach(function (f) {
+      onSubmit(f, async function (v, form) {
+        var lesson = parseInt(v.lesson, 10), total = v.total === '' ? null : parseInt(v.total, 10);
+        if (!(lesson >= 0 && lesson <= 200)) throw new Error('Enter how many lessons the class has completed.');
+        if (total !== null && !(total >= 1 && total <= 200)) throw new Error('Enter how many lessons the book has, or leave it empty.');
+        if (total !== null && lesson > total) throw new Error('Lessons completed cannot be more than the lessons in the book.');
+        await run(S.sb.rpc('set_group_progress', { g: form.dataset.prog, lesson: lesson, total: total, book_name: v.book || '' }));
+        toast('Class progress saved.'); S.focusNext = false; viewTeach(el);
+      });
+    });
     $$('[data-notice]', el).forEach(function (f) {
       onSubmit(f, async function (v, form) {
         if (!v.title || !v.body) throw new Error('Enter a title and a message.');
@@ -1283,7 +1392,7 @@
           <div class="field"><label for="n-aud">Who should see it?</label><select id="n-aud" name="aud" required>${audOpts}</select></div>
           <div class="field"><label for="n-title">Title</label><input id="n-title" name="title" required maxlength="140"></div>
           <div class="field"><label for="n-body">Message</label><textarea id="n-body" name="body" required maxlength="2000" rows="4"></textarea></div>
-          ${isAdmin() ? html`<label class="pt-consent"><input type="checkbox" name="pinned" value="yes"><span>Pin to the top of everyone’s dashboard</span></label>` : ''}
+          ${isAdmin() ? html`<label class="pt-consent"><input type="checkbox" name="pinned" value="yes"><span>Pin to the top of everyone’s home page</span></label>` : ''}
           <p class="form-error" role="alert" tabindex="-1" hidden></p>
           <button class="btn btn--blue" type="submit">Post</button>
         </form>` : empty('You can post once you are assigned a group', '')}
@@ -1316,17 +1425,10 @@
   var dTerm = function () { return S.dawrah && S.dawrah.term; };
   var portalUrl = function () { return location.origin + location.pathname; };
 
-  function dawrahNav(cur) {
-    var items = [['', 'Students'], ['classes', 'Classes'], ['exam-setup', 'Exam'], ['settings', 'Settings']];
-    if (S.dawrah.student) items.push(['mine', 'My classes']);
-    return html`<nav class="pt-subnav" aria-label="Dawrah"><ul>${items.map(function (i) {
-      return html`<li><a href="#/dawrah${i[0] ? '/' + i[0] : ''}"${raw(i[0] === cur ? ' aria-current="page"' : '')}>${i[1]}</a></li>`;
-    })}</ul></nav>`;
-  }
   function dwHead(cur) {
     var t = dTerm();
     return html`<h2 class="pt-h">${t.title}</h2>
-      <p class="pt-dw-lede">${[t.schedule, t.venue].filter(Boolean).join(' · ')}</p>${S.dawrah.admin ? dawrahNav(cur) : ''}`;
+      <p class="pt-dw-lede">${[t.schedule, t.venue].filter(Boolean).join(' · ')}</p>`;
   }
   function dwHelp() {
     if (!DW.coordinators.length) return '';
@@ -1536,7 +1638,7 @@
   // ------------------------------------------------------------------ admin: follow-up table
   function dwFollowText(r, missed) {
     var hi = 'Assalamu alaykum ' + (firstName(r.full_name) || '') + ', this is the AMSC Dawrah team. ';
-    if (!r.signed_up) return hi + 'You registered for ' + dTerm().title + '. Please create your login on the Student Portal with the same email you registered with (' + r.email + '): ' + portalUrl() + '#/signup';
+    if (!r.signed_up) return hi + 'You registered for ' + dTerm().title + '. Please create your login on the Student Portal with the same email you registered with (' + r.email + '): ' + portalUrl() + '#/signup/dawrah';
     if (missed) return hi + 'We noticed ' + (missed === 1 ? 'one class has' : missed + ' classes have') + ' not been done on the portal yet. The recordings and questions are here: ' + portalUrl() + '#/dawrah. May Allah make it easy for you.';
     return hi;
   }
@@ -2039,55 +2141,41 @@
   }
 
   // ===================================================================== admin
-  function adminNav(cur) {
-    var items = [['admin', 'Overview'], ['members', 'Members'], ['groups', 'Groups'], ['notices', 'Announcements'], ['library', 'Library']];
-    return html`<nav class="pt-subnav" aria-label="Admin"><ul>${items.map(function (i) {
-      return html`<li><a href="#/${i[0]}"${raw(i[0] === cur ? ' aria-current="page"' : '')}>${i[1]}</a></li>`;
-    })}</ul></nav>`;
-  }
-
   async function viewAdmin(el) {
     var mine = token();
-    view(el, loading('Loading the admin overview…'), false);
-    var week = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+    view(el, loading('Loading the overview…'), false);
     var c = function (q) { return count(q); };
     var res = await Promise.all([
-      run(S.sb.from('profiles').select('*').eq('status', 'pending').order('created_at')),
+      run(S.sb.from('profiles').select('*').eq('status', 'pending').eq('joins_islamiyyah', true).order('created_at')),
       c(S.sb.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'active').eq('role', 'student')),
-      c(S.sb.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'active').in('role', ['teacher', 'admin'])),
-      c(S.sb.from('groups').select('id', { count: 'exact', head: true })),
-      c(S.sb.from('resources').select('id', { count: 'exact', head: true })),
-      c(S.sb.from('quran_logs').select('id', { count: 'exact', head: true }).gte('log_date', week)),
-      c(S.sb.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'active').is('quran_group', null).eq('role', 'student'))
+      c(S.sb.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'active').eq('role', 'teacher')),
+      c(S.sb.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'active').eq('role', 'student').or('quran_group.is.null,arabic_group.is.null'))
     ]);
     if (!mine()) return;
     var pend = res[0];
     var stat = function (k, v, href) { return html`<a class="pt-stat pt-stat--link" href="${href}"><span class="pt-stat__k">${k}</span><span class="pt-stat__v">${fmtNum(v)}</span></a>`; };
     view(el, html`
-      <h2 class="pt-h">Admin</h2>${adminNav('admin')}
+      <h2 class="pt-h">Islamiyyah overview</h2>
       <div class="pt-stats">
-        ${stat('Awaiting approval', pend.length, '#/members?status=pending')}
+        ${stat('Waiting for approval', pend.length, '#/members?status=pending')}
         ${stat('Active students', res[1], '#/members?status=active')}
-        ${stat('Teachers and admins', res[2], '#/members?role=staff')}
-        ${stat('Students not in a Qur’an group', res[6], '#/members?nogroup=1')}
-        ${stat('Groups', res[3], '#/groups')}
-        ${stat('Library items', res[4], '#/library')}
-        ${stat('Qur’an records this week', res[5], '#/teach')}
+        ${stat('Teachers', res[2], '#/members?role=teacher')}
+        ${stat('Not yet in a class', res[3], '#/members?nogroup=1')}
       </div>
       <section class="pt-card" aria-labelledby="a-pend"><h3 id="a-pend">${icon('bell')}Waiting for approval</h3>
         ${pend.length ? html`<ul class="pt-rows">${pend.map(function (p) {
           return html`<li><div><strong>${p.full_name}</strong><span class="pt-meta">${p.email} · ${p.wing ? WING[p.wing] : 'Class not chosen'}${p.department ? ' · ' + p.department : ''}${p.level ? ', ' + p.level : ''} · signed up ${fmtDate(p.created_at, false)}</span></div>
             <a class="btn btn--sm btn--blue" href="#/member/${p.id}">Review<span class="sr-only"> ${p.full_name}</span></a></li>`;
-        })}</ul>` : empty('Nobody is waiting', 'New sign-ups will appear here.')}
+        })}</ul>` : empty('Nobody is waiting', 'New Islamiyyah sign-ups appear here. Dawrah sign-ups go to the Dawrah list instead.')}
       </section>
-      <section class="pt-card" aria-labelledby="a-how"><h3 id="a-how">How the portal runs</h3>
+      <details class="pt-details pt-card"><summary>How the Islamiyyah portal runs</summary>
         <ol class="pt-steps">
           <li>Students create their own accounts at <strong>${location.host}${location.pathname}</strong>.</li>
-          <li>You approve each one here and set their Qur’an and Arabic levels and groups.</li>
-          <li>Create groups in <a href="#/groups">Groups</a> and assign teachers. To make someone a teacher, open their account and set the role to Teacher.</li>
-          <li>Teachers record and verify progress and add assessments in <a href="#/teach">Teaching</a>.</li>
+          <li>You approve each one and set their Qur’an and Arabic levels and classes.</li>
+          <li>Create classes in <a href="#/groups">Groups</a> and assign teachers. To make someone a teacher, open their account in Members and set the role to Teacher.</li>
+          <li>Teachers verify Qur’an records, add assessments and update Arabic class progress.</li>
           <li>If someone forgets their password, open their account and set a temporary password.</li>
-        </ol></section>`);
+        </ol></details>`);
   }
 
   async function viewMembers(el) {
@@ -2099,38 +2187,42 @@
     res[1].forEach(function (g) { gname[g.id] = g.name; });
     var qs = new URLSearchParams((location.hash.split('?')[1]) || '');
     view(el, html`
-      <h2 class="pt-h">Members</h2>${adminNav('members')}
+      <h2 class="pt-h">Members</h2>
       <div class="pt-filters" role="search">
         <div class="field"><label for="m-q">Search</label><input id="m-q" type="search" placeholder="Name, email or department"></div>
         <div class="field"><label for="m-st">Status</label><select id="m-st"><option value="">Any status</option>${opts(STATUS, qs.get('status') || '')}</select></div>
-        <div class="field"><label for="m-ro">Role</label><select id="m-ro"><option value="">Any role</option>${opts(ROLE)}<option value="staff"${raw(qs.get('role') === 'staff' ? ' selected' : '')}>Teachers and admins</option></select></div>
+        <div class="field"><label for="m-ro">Role</label><select id="m-ro"><option value="">Any role</option>${opts(ROLE, qs.get('role') || '')}<option value="staff"${raw(qs.get('role') === 'staff' ? ' selected' : '')}>Teachers and admins</option></select></div>
         <div class="field"><label for="m-wi">Class</label><select id="m-wi"><option value="">Brothers and sisters</option><option value="brothers">Brothers</option><option value="sisters">Sisters</option></select></div>
       </div>
-      <label class="pt-consent pt-consent--inline"><input type="checkbox" id="m-ng"${raw(qs.get('nogroup') ? ' checked' : '')}><span>Only students not yet in a Qur’an group</span></label>
+      <label class="pt-consent pt-consent--inline"><input type="checkbox" id="m-ng"${raw(qs.get('nogroup') ? ' checked' : '')}><span>Only students not yet in a class</span></label>
+      <label class="pt-consent pt-consent--inline"><input type="checkbox" id="m-dw"><span>Include Dawrah-only accounts</span></label>
       <p class="pt-meta" id="m-count" aria-live="polite"></p>
       <div id="m-list"></div>`);
-    var q = $('#m-q', el), st = $('#m-st', el), ro = $('#m-ro', el), wi = $('#m-wi', el), ng = $('#m-ng', el);
+    var q = $('#m-q', el), st = $('#m-st', el), ro = $('#m-ro', el), wi = $('#m-wi', el), ng = $('#m-ng', el), dw = $('#m-dw', el);
+    var dawrahSide = function (p) { return !p.joins_islamiyyah && p.status === 'pending'; };
     function draw() {
       var t = q.value.trim().toLowerCase();
       var shown = all.filter(function (p) {
         if (st.value && p.status !== st.value) return false;
         if (ro.value === 'staff' ? p.role === 'student' : ro.value && p.role !== ro.value) return false;
         if (wi.value && p.wing !== wi.value) return false;
-        if (ng.checked && (p.quran_group || p.role !== 'student')) return false;
+        if (ng.checked && ((p.quran_group && p.arabic_group) || p.role !== 'student' || p.status !== 'active')) return false;
+        if (!dw.checked && dawrahSide(p)) return false;
         if (t && (p.full_name + ' ' + p.email + ' ' + (p.department || '')).toLowerCase().indexOf(t) < 0) return false;
         return true;
       });
-      $('#m-count', el).textContent = 'Showing ' + shown.length + ' of ' + plural(all.length, 'member') + '.';
+      var total = dw.checked ? all.length : all.filter(function (p) { return !dawrahSide(p); }).length;
+      $('#m-count', el).textContent = 'Showing ' + shown.length + ' of ' + plural(total, 'member') + '.';
       $('#m-list', el).innerHTML = out(shown.length ? html`<table class="pt-table"><caption class="sr-only">Portal members</caption>
         <thead><tr><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Role</th><th scope="col">Qur’an group</th><th scope="col">Arabic group</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead>
         <tbody>${shown.map(function (p) {
-          return html`<tr><td data-label="Name"><span class="pt-td"><strong>${p.full_name}</strong><span class="pt-meta">${p.email}${p.wing ? ' · ' + WING[p.wing] : ''}</span></span></td>
+          return html`<tr><td data-label="Name"><span class="pt-td"><strong>${p.full_name}</strong><span class="pt-meta">${p.email}${p.wing ? ' · ' + WING[p.wing] : ''}</span>${dawrahSide(p) ? pill('Dawrah only', 'blue') : ''}</span></td>
             <td data-label="Status"><span class="pt-td">${statusPill(p.status)}</span></td><td data-label="Role"><span class="pt-td">${ROLE[p.role]}</span></td>
             <td data-label="Qur’an group"><span class="pt-td">${p.quran_group ? gname[p.quran_group] : '—'}</span></td><td data-label="Arabic group"><span class="pt-td">${p.arabic_group ? gname[p.arabic_group] : '—'}</span></td>
             <td><a class="btn btn--sm btn--line" href="#/member/${p.id}">Open<span class="sr-only"> ${p.full_name}</span></a></td></tr>`;
         })}</tbody></table>` : empty('No members match', 'Change the search or filters.'));
     }
-    [q, st, ro, wi, ng].forEach(function (c2) { c2.addEventListener('input', draw); c2.addEventListener('change', draw); });
+    [q, st, ro, wi, ng, dw].forEach(function (c2) { c2.addEventListener('input', draw); c2.addEventListener('change', draw); });
     draw();
   }
 
@@ -2147,7 +2239,7 @@
     var res = await Promise.all([run(S.sb.from('profiles').select('*').eq('id', id).maybeSingle()), run(S.sb.from('groups').select('*').order('name'))]);
     if (!mine()) return;
     var p = res[0], groups = res[1];
-    if (!p) return view(el, html`<h2 class="pt-h">Account not found</h2>${adminNav('members')}${empty('This account no longer exists', '', html`<a class="btn btn--sm btn--blue" href="#/members">Back to members</a>`)}`);
+    if (!p) return view(el, html`<h2 class="pt-h">Account not found</h2>${empty('This account no longer exists', '', html`<a class="btn btn--sm btn--blue" href="#/members">Back to members</a>`)}`);
     var self = p.id === S.me.id;
     var gOpts = function (track, sel) {
       return [html`<option value="">Not placed</option>`].concat(groups.filter(function (g) { return g.track === track; }).map(function (g) {
@@ -2158,6 +2250,7 @@
       <p class="pt-back"><a href="#/members">← All members</a></p>
       <div class="pt-headrow"><h2 class="pt-h">${p.full_name}</h2>${statusPill(p.status)}</div>
       <p class="pt-meta">${p.email}${p.phone ? ' · ' + p.phone : ''}${p.department ? ' · ' + p.department : ''}${p.level ? ', ' + p.level : ''} · joined ${fmtDate(p.created_at)}${p.consent_at ? ' · consent given' : ' · no consent recorded'}</p>
+      ${!p.joins_islamiyyah && p.status === 'pending' ? html`<p class="pt-alert pt-alert--info">${icon('alert')}<span>${firstName(p.full_name)} signed up for the Dawrah only. Approving them here also adds them to the Islamiyyah.</span></p>` : ''}
       <div class="pt-grid">
         <section class="pt-card pt-card--wide" aria-labelledby="m-edit"><h3 id="m-edit">Approval, class and role</h3>
           <form class="form form--plain pt-form" id="f-member" novalidate>
@@ -2202,6 +2295,7 @@
         arabic_level: v.arabic_level || null, arabic_group: v.arabic_group || null, subjects: v.subjects || null
       };
       if (!self) { row.status = v.status === 'pending' && p.status === 'pending' ? 'active' : v.status; row.role = v.role; }
+      if (row.status === 'active') row.joins_islamiyyah = true;
       var rows = await run(S.sb.from('profiles').update(row).eq('id', p.id).select('*'));
       if (!rows.length) throw new Error('The account could not be updated.');
       toast(p.status === 'pending' && rows[0].status === 'active' ? firstName(p.full_name) + ' is approved.' : 'Changes saved.');
@@ -2245,9 +2339,15 @@
         <div class="field"><label for="gn-${id}">Group name</label><input id="gn-${id}" name="name" required maxlength="80" value="${g ? g.name : ''}" placeholder="For example: Qur’an Beginners (Brothers)"></div>
         <div class="field--2">
           <div class="field"><label for="gt-${id}">Area</label><select id="gt-${id}" name="track"${raw(g ? ' disabled' : '')}>${opts({ quran: 'Qur’an', arabic: 'Arabic' }, g ? g.track : 'quran')}</select></div>
-          <div class="field"><label for="gl-${id}">Level</label><select id="gl-${id}" name="level">${opts(QLEVEL, g ? g.level : 'beginner')}</select></div>
+          <div class="field"><label for="gl-${id}">Level</label><select id="gl-${id}" name="level">${opts(g && g.track === 'arabic' ? LEVEL : QLEVEL, g ? g.level : 'beginner')}</select></div>
         </div>
         <div class="field"><label for="gw-${id}">Who attends</label><select id="gw-${id}" name="wing">${opts(WING, g ? g.wing : 'brothers')}</select></div>
+        ${g && g.track === 'arabic' ? html`<fieldset class="field pt-fieldset"><legend>Class progress <span class="opt">(teachers can also update this)</span></legend>
+          <div class="field"><label for="gb-${id}">Book</label><input id="gb-${id}" name="book" maxlength="120" value="${g.book || ''}" placeholder="For example: Durus al-Lughah, Book 1"></div>
+          <div class="field--2">
+            <div class="field"><label for="gc-${id}">Lessons completed</label><input id="gc-${id}" name="current_lesson" type="number" inputmode="numeric" min="0" max="200" value="${g.current_lesson == null ? '' : g.current_lesson}"></div>
+            <div class="field"><label for="gtl-${id}">Lessons in the book</label><input id="gtl-${id}" name="total_lessons" type="number" inputmode="numeric" min="1" max="200" value="${g.total_lessons || ''}"></div>
+          </div></fieldset>` : ''}
         ${g ? html`<fieldset class="field pt-choice pt-choice--list"><legend>Teachers</legend>${staff.length ? staff.map(function (t) {
           return html`<label><input type="checkbox" name="t" value="${t.id}"${raw(tids.indexOf(t.id) >= 0 ? ' checked' : '')}> ${t.full_name} <span class="pt-meta">(${ROLE[t.role]}${t.wing ? ', ' + WING[t.wing] : ''})</span></label>`;
         }) : html`<p class="pt-meta">No teachers yet. Open a member in Members and set their role to Teacher.</p>`}</fieldset>` : ''}
@@ -2267,7 +2367,7 @@
       </section>`;
     };
     view(el, html`
-      <h2 class="pt-h">Groups</h2>${adminNav('groups')}
+      <h2 class="pt-h">Groups and teachers</h2>
       <section class="pt-card" aria-labelledby="g-new"><h3 id="g-new">${icon('plus')}Create a group</h3>
         <p class="pt-meta">The committee document sets three levels for each area: Beginner, Intermediate and Advanced (Hifz for Qur’an).</p>
         ${groupForm(null)}</section>
@@ -2282,7 +2382,17 @@
           await run(S.sb.from('groups').insert({ name: v.name, track: v.track, level: v.level, wing: v.wing }));
           toast('Group created.'); return reload();
         }
-        var rows = await run(S.sb.from('groups').update({ name: v.name, level: v.level, wing: v.wing }).eq('id', gid).select('id'));
+        var upd = { name: v.name, level: v.level, wing: v.wing };
+        if ('current_lesson' in v) {
+          var cl = v.current_lesson === '' ? null : parseInt(v.current_lesson, 10), tl = v.total_lessons === '' ? null : parseInt(v.total_lessons, 10);
+          if (cl !== null && !(cl >= 0 && cl <= 200)) throw new Error('Lessons completed must be a number from 0 to 200.');
+          if (tl !== null && !(tl >= 1 && tl <= 200)) throw new Error('Lessons in the book must be a number from 1 to 200.');
+          if (cl !== null && tl !== null && cl > tl) throw new Error('Lessons completed cannot be more than the lessons in the book.');
+          var g0 = groups.find(function (x) { return x.id === gid; });
+          upd.book = v.book || null; upd.total_lessons = tl; upd.current_lesson = cl;
+          if (cl !== g0.current_lesson || tl !== g0.total_lessons || (v.book || null) !== (g0.book || null)) upd.progress_at = new Date().toISOString();
+        }
+        var rows = await run(S.sb.from('groups').update(upd).eq('id', gid).select('id'));
         if (!rows.length) throw new Error('The group could not be saved.');
         var want = $$('[name=t]:checked', form).map(function (c) { return c.value; });
         var have = teachersOf(gid);

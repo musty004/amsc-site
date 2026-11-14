@@ -227,8 +227,8 @@ PROGRAMMES = pagehead("Programmes",
       <div class="partner-strip__copy">
         <p class="kicker">{pill("Registration open")} {D.DAWRAH_VENUE}</p>
         <h2>Dawrah: {D.DAWRAH_TITLE}</h2>
-        <p>{D.DAWRAH_SUBJECT}. {D.DAWRAH_WHEN}, for {D.DAWRAH_LENGTH.lower()}, with recordings, short
-        questions after each class and a final exam.</p>
+        <p>{D.DAWRAH_SUBJECT}, at the {D.DAWRAH_VENUE} {D.DAWRAH_WHEN[0].lower() + D.DAWRAH_WHEN[1:]}, for {D.DAWRAH_LENGTH.lower()}.
+        {D.DAWRAH_DAYS}. Each class comes with a recording and short questions, and there is a final exam.</p>
         <div class="actions"><a class="btn btn--blue" href="{D.DAWRAH_PAGE}#register">Register for the Dawrah</a>
           <a class="link" href="{D.DAWRAH_PAGE}">About the Dawrah</a></div>
       </div>

@@ -65,6 +65,14 @@ create index if not exists profiles_quran_group_idx  on public.profiles (quran_g
 create index if not exists profiles_arabic_group_idx on public.profiles (arabic_group);
 create index if not exists profiles_status_idx       on public.profiles (status);
 
+-- Added later: which programme someone signed up for (false = Dawrah only, so they stay out of
+-- the Islamiyyah approval list), and each Arabic class's place in its textbook.
+alter table public.profiles add column if not exists joins_islamiyyah boolean not null default true;
+alter table public.groups add column if not exists book text check (char_length(book) <= 120);
+alter table public.groups add column if not exists current_lesson smallint check (current_lesson between 0 and 200);
+alter table public.groups add column if not exists total_lessons smallint check (total_lessons between 1 and 200);
+alter table public.groups add column if not exists progress_at timestamptz;
+
 create table if not exists public.group_teachers (
   group_id    uuid not null references public.groups (id) on delete cascade,
   teacher_id  uuid not null references public.profiles (id) on delete cascade,
@@ -321,7 +329,7 @@ declare
   nm text := nullif(trim(m->>'full_name'), '');
   w  text := m->>'wing';
 begin
-  insert into public.profiles (id, email, full_name, wing, phone, department, level, consent_at)
+  insert into public.profiles (id, email, full_name, wing, phone, department, level, consent_at, joins_islamiyyah)
   values (
     new.id,
     coalesce(new.email, ''),
@@ -330,7 +338,8 @@ begin
     left(nullif(trim(m->>'phone'), ''), 30),
     left(nullif(trim(m->>'department'), ''), 120),
     left(nullif(trim(m->>'level'), ''), 20),
-    case when m->>'consent' = 'true' then now() end
+    case when m->>'consent' = 'true' then now() end,
+    coalesce(m->>'programme', '') <> 'dawrah'
   )
   on conflict (id) do nothing;
   return new;
@@ -366,7 +375,8 @@ begin
      or new.arabic_level is distinct from old.arabic_level
      or new.quran_group is distinct from old.quran_group
      or new.arabic_group is distinct from old.arabic_group
-     or (new.must_change_password and not old.must_change_password) then
+     or (new.must_change_password and not old.must_change_password)
+     or (old.joins_islamiyyah and not new.joins_islamiyyah) then
     raise exception 'Only an admin can change that.' using errcode = '42501';
   end if;
   new.updated_at := now();
@@ -595,6 +605,27 @@ language sql stable security definer set search_path = '' as $$
   order by g.track, s.full_name;
 $$;
 
+-- Arabic class progress: the class's teachers (or an admin) record the current lesson.
+create or replace function public.set_group_progress(g uuid, lesson int, total int, book_name text)
+returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not (private.is_admin() or private.teaches_group(g)) then
+    raise exception 'Only this class''s teachers can update its progress.' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.groups where id = g and track = 'arabic') then
+    raise exception 'Class progress is for Arabic classes.';
+  end if;
+  if lesson is null or lesson < 0 or lesson > 200 then raise exception 'Enter the lesson number.'; end if;
+  if total is not null and (total < 1 or total > 200) then raise exception 'Enter how many lessons the book has.'; end if;
+  if total is not null and lesson > total then raise exception 'The current lesson cannot be after the last lesson.'; end if;
+  update public.groups
+     set current_lesson = lesson, total_lessons = total,
+         book = left(nullif(trim(book_name), ''), 120), progress_at = now()
+   where id = g;
+end;
+$$;
+
 -- Admin: set a temporary password for a member who has forgotten theirs.
 create or replace function public.admin_set_password(target uuid, new_password text)
 returns void
@@ -632,9 +663,9 @@ begin
 end;
 $$;
 
-revoke all on function public.my_teachers(), public.my_classmates(),
+revoke all on function public.my_teachers(), public.my_classmates(), public.set_group_progress(uuid, int, int, text),
   public.admin_set_password(uuid, text), public.admin_delete_user(uuid) from public, anon;
-grant execute on function public.my_teachers(), public.my_classmates(),
+grant execute on function public.my_teachers(), public.my_classmates(), public.set_group_progress(uuid, int, int, text),
   public.admin_set_password(uuid, text), public.admin_delete_user(uuid) to authenticated;
 
 -- -----------------------------------------------------------------------------
@@ -679,8 +710,10 @@ create table if not exists public.dawrah_terms (
 );
 create unique index if not exists dawrah_terms_one_current on public.dawrah_terms (is_current) where is_current;
 insert into public.dawrah_terms (title, schedule, venue, is_current)
-select 'Dawratul-Hadith: The 40 Hadith of Imam An-Nawawi', 'Three days a week, between Maghrib and Isha', 'AFIT Masjid', true
+select 'Dawratul-Hadith: The 40 Hadith of Imam An-Nawawi', 'Between Maghrib and Isha. The days will be announced soon', 'AFIT Masjid', true
 where not exists (select 1 from public.dawrah_terms);
+update public.dawrah_terms set schedule = 'Between Maghrib and Isha. The days will be announced soon'
+ where schedule = 'Three days a week, between Maghrib and Isha';
 
 create table if not exists public.dawrah_admins (
   user_id    uuid primary key references public.profiles (id) on delete cascade,
